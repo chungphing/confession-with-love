@@ -1,0 +1,18 @@
+{
+  "name": "confession-with-love",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n backend,pink,minimal -c cyan,magenta,blue \"npm run dev -w @confession/backend\" \"npm run dev -w @confession/pink\" \"npm run dev -w @confession/minimal\"",
+    "build": "npm run build -w @confession/backend && npm run build -w @confession/pink && npm run build -w @confession/minimal",
+    "typecheck": "npm run typecheck -w @confession/backend && npm run typecheck -w @confession/pink && npm run typecheck -w @confession/minimal"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.5.4"
+  }
+}
