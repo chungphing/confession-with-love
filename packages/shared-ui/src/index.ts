@@ -6,3 +6,5 @@ export * from "./Highlights";
 export * from "./PaymentSheet";
 export * from "./auth";
 export * from "./AuthPage";
+export * from "./CommentSection";
+export * from "./comments";
