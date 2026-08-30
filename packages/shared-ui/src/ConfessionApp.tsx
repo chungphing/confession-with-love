@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import {
   CELL_PRICE_USD,
   CellCoord,
@@ -12,6 +13,7 @@ import {
   cellKey,
 } from "@confession/shared";
 import { getSocket } from "./socket";
+import { logout, useAuth } from "./auth";
 import {
   Camera,
   CELL_H,
@@ -30,6 +32,7 @@ import { PaymentSheet } from "./PaymentSheet";
 import { ConfessionCard } from "./ConfessionCard";
 import { Header } from "./Header";
 import { Highlights } from "./Highlights";
+import { Icon } from "./icons";
 import { readTheme } from "./theme";
 
 const BACKEND_URL =
@@ -90,6 +93,8 @@ function easeOutBack(t: number): number {
 }
 
 export function ConfessionApp() {
+  const router = useRouter();
+  const { user } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const camRef = useRef<Camera | null>(null);
   const paletteRef = useRef<Palette>(readPalette());
@@ -484,6 +489,10 @@ export function ConfessionApp() {
       showToast("This cell is currently reserved — try another.");
       return;
     }
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     setCheckout(null);
     setComposing(true);
   };
@@ -511,6 +520,10 @@ export function ConfessionApp() {
   };
 
   const beginBulkCompose = () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     setComposing(true);
   };
 
@@ -577,6 +590,10 @@ export function ConfessionApp() {
   const handleReact = useCallback(
     async (emoji: string) => {
       if (!viewing) return;
+      if (!user) {
+        router.push("/login");
+        return;
+      }
       const res = await fetch(`${BACKEND_URL}/api/reactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -587,7 +604,7 @@ export function ConfessionApp() {
         applyConfession(data.confession as Confession);
       }
     },
-    [viewing, applyConfession],
+    [viewing, user, applyConfession, router],
   );
 
   const popular = useMemo(() => {
@@ -602,7 +619,7 @@ export function ConfessionApp() {
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden">
-      <Header />
+      <Header user={user} onLogout={() => logout()} />
 
       <div className="relative min-h-0 flex-1">
         <canvas
@@ -647,40 +664,48 @@ export function ConfessionApp() {
         </div>
 
         {selectMode && selection.size === 0 && (
-          <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-black/70 px-4 py-2 text-sm text-white backdrop-blur">
-            Drag to select cells · click to toggle
+          <div className="pointer-events-none absolute inset-x-0 top-4 z-10 flex justify-center">
+            <div className="rounded-full bg-black/70 px-4 py-2 text-sm text-white backdrop-blur">
+              Drag to select cells · click to toggle
+            </div>
           </div>
         )}
 
-        <button
-          onClick={toggleSelectMode}
-          className={`absolute bottom-3 right-3 z-10 rounded-full px-4 py-2 text-sm font-semibold shadow-lg transition ${
-            selectMode
-              ? "bg-accent text-on-accent"
-              : "bg-black/60 text-white backdrop-blur hover:bg-black/80"
-          }`}
-        >
-          {selectMode ? "Done" : "Select multiple"}
-        </button>
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">
+          <button
+            onClick={toggleSelectMode}
+            aria-label="Select multiple cells"
+            title="Select multiple cells"
+            className={`pointer-events-auto grid h-12 w-12 place-items-center rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] backdrop-blur-md transition ${
+              selectMode
+                ? "text-accent ring-2 ring-accent"
+                : "text-white hover:bg-white/10"
+            }`}
+          >
+            <Icon icon="clarity:grid-view-line" width={20} height={20} />
+          </button>
+        </div>
 
         {selectMode && selection.size > 0 && (
-          <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/70 py-2 pl-4 pr-2 text-sm text-white backdrop-blur">
-            <span>
-              {selection.size} cell{selection.size > 1 ? "s" : ""} · $
-              {(CELL_PRICE_USD * selection.size).toFixed(2)}
-            </span>
-            <button
-              onClick={clearSelection}
-              className="rounded-full px-3 py-1 text-xs opacity-70 transition hover:opacity-100"
-            >
-              Clear
-            </button>
-            <button
-              onClick={beginBulkCompose}
-              className="rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-on-accent"
-            >
-              Buy
-            </button>
+          <div className="pointer-events-none absolute inset-x-0 bottom-20 z-10 flex justify-center">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-black/70 py-2 pl-4 pr-2 text-sm text-white backdrop-blur">
+              <span>
+                {selection.size} cell{selection.size > 1 ? "s" : ""} · $
+                {(CELL_PRICE_USD * selection.size).toFixed(2)}
+              </span>
+              <button
+                onClick={clearSelection}
+                className="rounded-full px-3 py-1 text-xs opacity-70 transition hover:opacity-100"
+              >
+                Clear
+              </button>
+              <button
+                onClick={beginBulkCompose}
+                className="rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-on-accent"
+              >
+                Buy
+              </button>
+            </div>
           </div>
         )}
       </div>

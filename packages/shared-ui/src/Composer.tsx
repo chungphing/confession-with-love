@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MAX_MESSAGE_LENGTH } from "@confession/shared";
 
@@ -15,10 +15,19 @@ interface ComposerProps {
 export function Composer({ open, cell, count, onClose, onSubmit }: ComposerProps) {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (open) setMessage("");
   }, [open, cell?.x, cell?.y, count]);
+
+  useEffect(() => {
+    if (!open) return;
+    const raf = requestAnimationFrame(() => {
+      textareaRef.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open]);
 
   const remaining = MAX_MESSAGE_LENGTH - message.length;
   const valid = message.trim().length > 0 && remaining >= 0;
@@ -68,12 +77,12 @@ export function Composer({ open, cell, count, onClose, onSubmit }: ComposerProps
             )}
 
             <textarea
+              ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               maxLength={MAX_MESSAGE_LENGTH}
               placeholder="What do you need to say?"
               className="h-32 w-full resize-none rounded-xl border border-white/10 bg-white/5 p-3 text-base outline-none placeholder:opacity-40 focus:border-accent"
-              autoFocus
             />
 
             <div className="mt-3 flex items-center justify-between">
