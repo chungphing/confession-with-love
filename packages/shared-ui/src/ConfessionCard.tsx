@@ -2,9 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Confession, REACTIONS } from "@confession/shared";
-import { useTheme } from "./theme";
 import { CommentSection } from "./CommentSection";
-import { generateComments } from "./comments";
+import { formatRelativeTime, generateComments } from "./comments";
 
 interface ConfessionCardProps {
   confession: Confession | null;
@@ -12,14 +11,14 @@ interface ConfessionCardProps {
   onReact: (emoji: string) => void;
 }
 
+// Discrete stepped easing for a chunky, pixel-art feel.
+const pixelEase = (t: number): number => Math.min(1, Math.floor(t * 6) / 5);
+
 export function ConfessionCard({
   confession,
   onClose,
   onReact,
 }: ConfessionCardProps) {
-  const theme = useTheme();
-  const isPink = theme === "pink";
-
   return (
     <AnimatePresence>
       {confession && (
@@ -31,66 +30,79 @@ export function ConfessionCard({
           exit={{ opacity: 0 }}
           onClick={onClose}
         >
-          <div className="flex max-h-[85vh] w-full max-w-5xl flex-col gap-3 sm:flex-row" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex max-h-[85vh] w-full max-w-5xl flex-col gap-3 sm:flex-row"
+            onClick={(e) => e.stopPropagation()}
+          >
             <motion.div
-              className="flex max-h-[50vh] w-full shrink-0 flex-col overflow-y-auto rounded-[var(--panel-radius)] p-7 shadow-2xl sm:max-h-none sm:w-[55%]"
+              className="relative flex max-h-[50vh] w-full shrink-0 flex-col overflow-y-auto rounded-[var(--panel-radius)] border border-[var(--panel-border)] p-7 shadow-2xl sm:max-h-none sm:w-[55%]"
               style={{
                 background: "var(--hl-bg)",
                 color: "var(--hl-fg)",
                 fontFamily: "var(--hl-font)",
-                transformStyle: "preserve-3d",
-                perspective: 1000,
               }}
-              initial={isPink ? { rotateY: -90, opacity: 0 } : { opacity: 0, y: 24 }}
-              animate={isPink ? { rotateY: 0, opacity: 1 } : { opacity: 1, y: 0 }}
-              exit={isPink ? { rotateY: 90, opacity: 0 } : { opacity: 0, y: 24 }}
-              transition={
-                isPink
-                  ? { type: "spring", stiffness: 200, damping: 24 }
-                  : { duration: 0.25, ease: "easeOut" }
-              }
+              initial={{ scale: 0.82, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.28, ease: pixelEase }}
             >
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs uppercase tracking-widest opacity-50">
+              <div
+                className="absolute -top-3 left-1/2 h-6 w-28 -translate-x-1/2 rounded-[3px] shadow-sm"
+                style={{ background: "var(--accent)", opacity: 0.25 }}
+              />
+
+              <div className="mb-4 flex items-center justify-between">
+                <span className="font-mono text-[11px] uppercase tracking-widest opacity-50">
                   Cell ({confession.x}, {confession.y})
                 </span>
                 <button
                   onClick={onClose}
-                  className="rounded-full p-2 text-sm opacity-60 transition hover:opacity-100"
+                  className="grid h-8 w-8 place-items-center rounded-full text-sm opacity-60 transition hover:bg-[var(--hover-bg)] hover:opacity-100"
                   aria-label="Close"
                 >
                   ✕
                 </button>
               </div>
 
-              <p className="text-xl leading-relaxed">{confession.message}</p>
-              <p className="mt-2 text-xs opacity-40">
-                {new Date(confession.createdAt).toLocaleString()}
+              <p className="font-serif text-2xl leading-relaxed">
+                {confession.message}
               </p>
 
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] opacity-50">
+                <span>anon-{confession.id.slice(0, 4)}</span>
+                <span>·</span>
+                <span>{formatRelativeTime(confession.createdAt, Date.now())}</span>
+                <span>·</span>
+                <span>{new Date(confession.createdAt).toLocaleString()}</span>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-2">
                 {REACTIONS.map((emoji) => {
                   const count = confession.reactions[emoji] ?? 0;
                   return (
                     <button
                       key={emoji}
                       onClick={() => onReact(emoji)}
-                      className="flex items-center gap-1.5 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 py-1.5 text-sm transition hover:scale-105 hover:bg-[var(--hover-bg)] active:scale-95"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--panel-border)] bg-[var(--field-bg)] px-3 py-1.5 text-sm font-semibold text-accent transition hover:scale-105 active:scale-95"
                     >
                       <span>{emoji}</span>
-                      <span className="font-semibold">{count}</span>
+                      <span className="font-mono text-xs">{count}</span>
                     </button>
                   );
                 })}
               </div>
+
+              <p className="mt-auto pt-6 font-mono text-[10px] uppercase tracking-widest opacity-40">
+                Sealed permanently
+              </p>
             </motion.div>
 
             <motion.div
-              className="flex max-h-[50vh] w-full min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--panel-radius)] border border-[var(--panel-border)] bg-card bg-paper font-sans shadow-2xl sm:max-h-none"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 24 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="flex max-h-[50vh] w-full min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--panel-radius)] border border-[var(--panel-border)] bg-[var(--card)] font-sans shadow-2xl sm:max-h-none"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.28, ease: pixelEase, delay: 0.05 }}
             >
               <CommentSection
                 key={confession.id}

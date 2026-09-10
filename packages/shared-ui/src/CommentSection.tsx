@@ -62,13 +62,15 @@ function CommentItem({
 
   return (
     <div className={depth === 0 ? "" : "ml-3"}>
-      <div className={`rounded-2xl px-3.5 py-3 ${cardBgFor(depth)}`}>
+      <div
+        className={`rounded-2xl border border-[var(--panel-border)] px-3.5 py-3 ${cardBgFor(depth)}`}
+      >
         <div className="flex items-start gap-2.5">
           <Avatar name={comment.author} hue={comment.hue} />
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
               <span className="text-xs font-bold">{comment.author}</span>
-              <span className="text-[11px] opacity-40">
+              <span className="font-mono text-[11px] opacity-40">
                 {formatRelativeTime(comment.createdAt, now)}
               </span>
             </div>
@@ -76,7 +78,7 @@ function CommentItem({
             <div className="mt-2 flex items-center gap-3">
               <button
                 onClick={() => (isReplying ? onReply("") : onReply(comment.id))}
-                className="text-[11px] font-semibold opacity-50 transition hover:opacity-100"
+                className="text-[11px] font-semibold text-accent transition hover:underline"
               >
                 {isReplying ? "Cancel" : "Reply"}
               </button>
@@ -140,12 +142,12 @@ function ReplyForm({ onSubmit }: { onSubmit: (text: string) => void }) {
         onChange={(e) => setText(e.target.value)}
         placeholder="Reply…"
         autoFocus
-        className="min-w-0 flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 py-1.5 text-sm outline-none placeholder:opacity-40 focus:border-accent"
+        className="min-w-0 flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 py-1.5 text-sm outline-none transition placeholder:opacity-40 focus:border-accent focus:ring-2 focus:ring-[var(--soft-accent)]"
       />
       <button
         type="submit"
         disabled={!text.trim()}
-        className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-on-accent transition disabled:opacity-40"
+        className="shadow-pixel rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-on-accent transition active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-40 disabled:shadow-none"
       >
         Reply
       </button>
@@ -223,11 +225,14 @@ export function CommentSection({ comments }: CommentSectionProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between border-b border-[var(--panel-border)] px-5 py-3">
-        <h3 className="text-sm font-semibold uppercase tracking-widest opacity-80">
-          Comments
-        </h3>
-        <span className="rounded-full bg-[var(--soft-accent)] px-2.5 py-0.5 text-xs font-semibold text-accent">
+      <div className="flex items-center justify-between border-b border-[var(--panel-border)] px-5 py-4">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-widest text-accent">
+            Whispers back
+          </p>
+          <h3 className="font-serif text-lg font-semibold">Comments</h3>
+        </div>
+        <span className="rounded-full border border-[var(--panel-border)] bg-[var(--soft-accent)] px-2.5 py-0.5 font-mono text-xs font-semibold text-accent">
           {localComments.length}
         </span>
       </div>
@@ -257,7 +262,7 @@ export function CommentSection({ comments }: CommentSectionProps) {
         )}
       </div>
 
-      <div className="border-t border-[var(--panel-border)] p-3">
+      <div className="border-t border-[var(--panel-border)] bg-[var(--field-bg)] p-3">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -269,12 +274,12 @@ export function CommentSection({ comments }: CommentSectionProps) {
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
             placeholder={user ? "Write a comment…" : "Log in to comment…"}
-            className="min-w-0 flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2.5 text-sm outline-none placeholder:opacity-40 focus:border-accent"
+            className="min-w-0 flex-1 rounded-full border border-[var(--field-border)] bg-[var(--card)] px-4 py-2.5 text-sm outline-none transition placeholder:opacity-40 focus:border-accent focus:ring-2 focus:ring-[var(--soft-accent)]"
           />
           <button
             type="submit"
             disabled={!newText.trim()}
-            className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition disabled:opacity-40"
+            className="shadow-pixel shrink-0 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-40 disabled:shadow-none"
           >
             Post
           </button>

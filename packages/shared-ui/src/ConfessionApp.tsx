@@ -374,6 +374,20 @@ export function ConfessionApp() {
     };
   }, []);
 
+  // --- re-read canvas palette when the color theme changes ---
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => {
+      paletteRef.current = readPalette();
+    };
+    const observer = new MutationObserver(sync);
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["class", "style"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   // --- wheel zoom (native, passive false) ---
   useEffect(() => {
     const canvas = canvasRef.current;

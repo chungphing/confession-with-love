@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "./icons";
+import { ThemeToggle } from "./ThemeToggle";
+import { useTheme } from "./theme";
 import type { AuthUser } from "./auth";
 
 interface HeaderProps {
@@ -23,6 +25,7 @@ export function Header({
   onConfess,
 }: HeaderProps) {
   const [query, setQuery] = useState("");
+  const theme = useTheme();
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +84,8 @@ export function Header({
             className="w-48 rounded-lg border border-[var(--field-border)] bg-[var(--field-bg)] py-1.5 pl-7 pr-2.5 text-xs outline-none transition placeholder:opacity-40 focus:border-accent focus:bg-[var(--card)]"
           />
         </form>
+
+        {theme === "minimal" && <ThemeToggle />}
 
         {user ? (
           <div className="flex items-center gap-2 rounded-full border border-[var(--panel-border)] bg-[var(--card)] py-1 pl-1 pr-2 text-xs shadow-sm">

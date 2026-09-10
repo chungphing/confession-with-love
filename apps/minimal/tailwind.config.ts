@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/**/*.{ts,tsx}",
     "../../packages/shared-ui/src/**/*.{ts,tsx}",
@@ -25,7 +26,8 @@ const config: Config = {
         pixel: ["var(--font-pixel)", "monospace"],
       },
       boxShadow: {
-        pixel: "2px 2px 0 var(--shadow-pixel)",
+        pixel:
+          "0 1px 2px var(--shadow-pixel), 0 6px 16px -8px var(--shadow-pixel)",
       },
     },
   },

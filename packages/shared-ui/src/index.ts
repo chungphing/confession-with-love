@@ -4,6 +4,7 @@ export * from "./Composer";
 export * from "./Header";
 export * from "./Highlights";
 export * from "./PaymentSheet";
+export * from "./ThemeToggle";
 export * from "./auth";
 export * from "./AuthPage";
 export * from "./CommentSection";
