@@ -48,6 +48,8 @@ const DEFAULT_PALETTE: Palette = {
   cellSelected: "#6ba8a1",
   cellHover: "#ffbdbd",
   gridLine: "rgba(255,164,164,0.3)",
+  theme: "pink",
+  cellIcon: "#fcf9ea",
 };
 
 function readPalette(): Palette {
@@ -63,6 +65,8 @@ function readPalette(): Palette {
     cellSelected: val("--cw-cell-selected", DEFAULT_PALETTE.cellSelected),
     cellHover: val("--cw-cell-hover", DEFAULT_PALETTE.cellHover),
     gridLine: val("--cw-grid-line", DEFAULT_PALETTE.gridLine),
+    theme: val("--cw-theme", "pink") === "minimal" ? "minimal" : "pink",
+    cellIcon: val("--cw-bg", DEFAULT_PALETTE.cellIcon),
   };
 }
 

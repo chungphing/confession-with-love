@@ -1,4 +1,5 @@
 import { Confession, GRID_SIZE } from "@confession/shared";
+import clarity from "@iconify-json/clarity/icons.json";
 
 export interface Camera {
   scale: number;
@@ -14,6 +15,8 @@ export interface Palette {
   cellSelected: string;
   cellHover: string;
   gridLine: string;
+  theme: "pink" | "minimal";
+  cellIcon: string;
 }
 
 export interface LockedCell {
@@ -82,6 +85,131 @@ function roundRectPath(
   ctx.lineTo(x, y + radius);
   ctx.arcTo(x, y, x + radius, y, radius);
   ctx.closePath();
+}
+
+// --- active-cell pixel-art buttons + icons ---
+
+const PIXEL_HEART = [
+  "011000110",
+  "111111111",
+  "111111111",
+  "111111111",
+  "011111110",
+  "001111100",
+  "000111000",
+  "000010000",
+];
+
+function extractPaths(body: string): string[] {
+  const paths: string[] = [];
+  const tagRe = /<path\b[^>]*>/g;
+  let match: RegExpExecArray | null;
+  while ((match = tagRe.exec(body))) {
+    const tag = match[0];
+    if (tag.includes('fill="none"')) continue;
+    const d = tag.match(/\bd="([^"]+)"/)?.[1];
+    if (d) paths.push(d);
+  }
+  return paths;
+}
+
+const CHECK_PATHS = extractPaths(
+  (clarity.icons["check-line"] as { body: string }).body,
+);
+
+let checkPathCache: Path2D[] | null = null;
+
+function getCheckPaths(): Path2D[] {
+  if (typeof Path2D === "undefined") return [];
+  if (!checkPathCache) {
+    checkPathCache = CHECK_PATHS.map((d) => new Path2D(d));
+  }
+  return checkPathCache;
+}
+
+function snapValue(ctx: CanvasRenderingContext2D, v: number): number {
+  const s = ctx.getTransform().a || 1;
+  return Math.round(v * s) / s;
+}
+
+function drawPixelButton(
+  ctx: CanvasRenderingContext2D,
+  sx: number,
+  sy: number,
+  w: number,
+  h: number,
+  base: string,
+): void {
+  const x = snapValue(ctx, sx);
+  const y = snapValue(ctx, sy);
+  const ww = Math.max(1, snapValue(ctx, w));
+  const hh = Math.max(1, snapValue(ctx, h));
+  const border = Math.max(1, Math.round(Math.min(ww, hh) * 0.08));
+  const bevel = Math.max(2, Math.round(hh * 0.22));
+  const faceW = Math.max(1, ww - border * 2);
+  const faceH = Math.max(1, hh - border * 2);
+  const highlight = Math.max(1, Math.round(border * 0.6));
+
+  ctx.fillStyle = base;
+  ctx.fillRect(x, y, ww, hh);
+
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  ctx.fillRect(x, y, ww, hh);
+
+  ctx.fillStyle = base;
+  ctx.fillRect(x + border, y + border, faceW, faceH);
+
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.fillRect(x + border, y + hh - border - bevel, faceW, bevel);
+
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.fillRect(x + border, y + border, faceW, highlight);
+}
+
+function drawPixelHeart(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string,
+  alpha: number,
+): void {
+  const cols = PIXEL_HEART[0].length;
+  const rows = PIXEL_HEART.length;
+  const px = Math.max(1, Math.floor(size / cols));
+  const originX = snapValue(ctx, cx - (cols * px) / 2);
+  const originY = snapValue(ctx, cy - (rows * px) / 2);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (PIXEL_HEART[r][c] !== "1") continue;
+      ctx.fillRect(originX + c * px, originY + r * px, px, px);
+    }
+  }
+  ctx.restore();
+}
+
+function drawCheck(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string,
+  alpha: number,
+): void {
+  const paths = getCheckPaths();
+  if (paths.length === 0) return;
+  const scale = size / 36;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.translate(snapValue(ctx, cx - size / 2), snapValue(ctx, cy - size / 2));
+  ctx.scale(scale, scale);
+  for (const p of paths) ctx.fill(p);
+  ctx.restore();
 }
 
 export function drawGrid(
@@ -180,17 +308,41 @@ export function drawGrid(
     }
   };
 
+  const isPink = palette.theme === "pink";
+
+  const drawActiveCell = (x: number, y: number) => {
+    if (cellW < CARD_MIN_PX) {
+      drawCard(x, y, palette.cellSelected);
+      return;
+    }
+    const sx = toScreenX(x) + margin;
+    const sy = toScreenY(y) + margin;
+    if (isPink) {
+      drawPixelButton(ctx, sx, sy, cardW, cardH, palette.cellSelected);
+    } else {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      drawCard(x, y, palette.cellSelected);
+      ctx.restore();
+      strokeCard(x, y, palette.cellSelected, Math.max(1.5, cellW * 0.08));
+    }
+    const iconSize = Math.min(cardW, cardH) * 0.55;
+    const cx = sx + cardW / 2;
+    const cy = sy + cardH / 2;
+    if (isPink) {
+      drawPixelHeart(ctx, cx, cy, iconSize, palette.cellIcon, 0.5);
+    } else {
+      drawCheck(ctx, cx, cy, iconSize, palette.cellIcon, 0.5);
+    }
+  };
+
   if (selectedCells && selectedCells.size > 0) {
     for (const key of selectedCells) {
       const [xs, ys] = key.split(":");
       const x = Number(xs);
       const y = Number(ys);
       if (x < xStart || x >= xEnd || y < yStart || y >= yEnd) continue;
-      ctx.save();
-      ctx.globalAlpha = 0.35;
-      drawCard(x, y, palette.cellSelected);
-      ctx.restore();
-      strokeCard(x, y, palette.cellSelected, Math.max(1.5, cellW * 0.08));
+      drawActiveCell(x, y);
     }
   }
 
@@ -199,6 +351,6 @@ export function drawGrid(
   }
 
   if (selected) {
-    strokeCard(selected.x, selected.y, palette.cellSelected, Math.max(2, cellW * 0.2));
+    drawActiveCell(selected.x, selected.y);
   }
 }
