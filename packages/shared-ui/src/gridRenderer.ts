@@ -275,54 +275,11 @@ function drawCheck(
 
 // --- "hot" brick fire effect ---
 
-const FLAME_COLS = 12;
-const FLAME_ROWS = 16;
-const FLAME_FRAMES = 6;
-
-// Deterministic value noise so server and client build identical sprites.
+// Deterministic value noise for the animated flame flicker.
 function flameRand(a: number, b: number): number {
   const n = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
   return n - Math.floor(n);
 }
-
-// Pixel-art flame frames, generated once. Chars: "." empty, "o" outer,
-// "y" mid, "w" core. Each frame has a taller core and a drifting tongue.
-const PIXEL_FLAME: string[][] = (() => {
-  const frames: string[][] = [];
-  for (let f = 0; f < FLAME_FRAMES; f++) {
-    const heights: number[] = [];
-    const tongue = (f / FLAME_FRAMES) * FLAME_COLS;
-    for (let c = 0; c < FLAME_COLS; c++) {
-      const nx = (c - (FLAME_COLS - 1) / 2) / ((FLAME_COLS - 1) / 2);
-      const base = Math.pow(1 - Math.abs(nx), 0.8);
-      let height = base * (FLAME_ROWS - 2);
-      height += (flameRand(f, c) - 0.5) * 3.5;
-      if (Math.abs(c - tongue) < 1.3) height += 3;
-      heights.push(
-        Math.max(1, Math.min(FLAME_ROWS - 1, Math.round(height))),
-      );
-    }
-
-    const rows: string[] = [];
-    for (let r = 0; r < FLAME_ROWS; r++) {
-      let row = "";
-      for (let c = 0; c < FLAME_COLS; c++) {
-        const fromBottom = FLAME_ROWS - 1 - r;
-        if (fromBottom < heights[c]) {
-          const nx = (c - (FLAME_COLS - 1) / 2) / ((FLAME_COLS - 1) / 2);
-          const heat =
-            (1 - fromBottom / heights[c]) * 0.5 + (1 - Math.abs(nx)) * 0.5;
-          row += heat > 0.72 ? "w" : heat > 0.45 ? "y" : "o";
-        } else {
-          row += ".";
-        }
-      }
-      rows.push(row);
-    }
-    frames.push(rows);
-  }
-  return frames;
-})();
 
 let reducedMotionCache: boolean | null = null;
 
@@ -336,42 +293,9 @@ function prefersReducedMotion(): boolean {
   return reducedMotionCache;
 }
 
-function drawFlameSprite(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  baseY: number,
-  width: number,
-  frame: number,
-  alpha: number,
-  palette: Palette,
-): void {
-  const sprite =
-    PIXEL_FLAME[((frame % FLAME_FRAMES) + FLAME_FRAMES) % FLAME_FRAMES];
-  const px = Math.max(1, Math.floor(width / FLAME_COLS));
-  const originX = snapValue(ctx, cx - (FLAME_COLS * px) / 2);
-  const originY = snapValue(ctx, baseY - FLAME_ROWS * px);
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  for (let r = 0; r < FLAME_ROWS; r++) {
-    const row = sprite[r];
-    for (let c = 0; c < FLAME_COLS; c++) {
-      const ch = row[c];
-      if (ch === ".") continue;
-      ctx.fillStyle =
-        ch === "w"
-          ? palette.flameCore
-          : ch === "y"
-            ? palette.flameMid
-            : palette.flameOuter;
-      ctx.fillRect(originX + c * px, originY + r * px, px, px);
-    }
-  }
-  ctx.restore();
-}
-
-// Blazing perimeter fire: a wall of flames across the top, side licks,
-// a pulsing whole-brick glow and rising embers. The face stays clear.
+// Thin burning outline: a continuous animated flame band hugging the brick's
+// border, plus a tight glow. Contained on the card so it never spills onto
+// neighbouring bricks. The face stays clear.
 function drawBrickFire(
   ctx: CanvasRenderingContext2D,
   sx: number,
@@ -379,7 +303,6 @@ function drawBrickFire(
   w: number,
   h: number,
   seed: number,
-  frame: number,
   time: number,
   palette: Palette,
   radius: number,
@@ -387,15 +310,16 @@ function drawBrickFire(
   const cx = sx + w / 2;
   const cy = sy + h / 2;
   const reduced = prefersReducedMotion();
-  const flick = reduced ? 1 : 0.82 + 0.18 * Math.sin(time * 0.006 + seed);
+  const flick = reduced ? 1 : 0.85 + 0.15 * Math.sin(time * 0.006 + seed);
+  const phase = Math.floor((reduced ? 0 : time) / 60);
 
-  // Whole-brick glow.
-  const glowR = Math.max(w, h) * 0.9;
+  // Tight glow, contained around the brick.
+  const glowR = Math.max(w, h) * 0.6;
   ctx.save();
-  ctx.globalAlpha = 0.5 * flick;
+  ctx.globalAlpha = 0.45 * flick;
   const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
   glow.addColorStop(0, palette.flameMid);
-  glow.addColorStop(0.55, palette.flameOuter);
+  glow.addColorStop(0.6, palette.flameOuter);
   glow.addColorStop(1, "transparent");
   ctx.fillStyle = glow;
   ctx.beginPath();
@@ -403,70 +327,39 @@ function drawBrickFire(
   ctx.fill();
   ctx.restore();
 
-  // Warm rim hugging the brick.
+  // Continuous flame band along the brick's border (slightly thicker on top).
+  const band = Math.max(2, Math.min(w, h) * 0.08);
+  const topBand = band * 1.6;
+  const block = Math.max(1, Math.round(band / 2));
+
   ctx.save();
-  ctx.globalAlpha = 0.55 * flick;
-  ctx.strokeStyle = palette.flameMid;
-  ctx.lineWidth = Math.max(1, w * 0.03);
-  roundRectPath(ctx, sx, sy, w, h, radius);
-  ctx.stroke();
-  ctx.restore();
+  ctx.globalAlpha = 0.95 * flick;
+  for (let yy = sy; yy < sy + h; yy += block) {
+    const py = yy + block / 2;
+    const fromTop = py - sy;
+    const fromBottom = sy + h - py;
+    for (let xx = sx; xx < sx + w; xx += block) {
+      const px = xx + block / 2;
+      const fromLeft = px - sx;
+      const fromRight = sx + w - px;
+      const dist = Math.min(fromTop, fromBottom, fromLeft, fromRight);
+      if (dist < 0) continue;
+      const effBand = fromTop === dist ? topBand : band;
+      if (dist > effBand) continue;
 
-  // Wall of flames across the full top edge.
-  const topCount = Math.max(3, Math.min(6, Math.round(w / (h * 0.6))));
-  const drawW = (w * 1.6) / topCount;
-  for (let i = 0; i < topCount; i++) {
-    const t = topCount === 1 ? 0.5 : i / (topCount - 1);
-    const fx = sx + t * w;
-    const jitter = reduced
-      ? 0
-      : Math.sin(time * 0.004 + i * 1.7 + seed) * h * 0.06;
-    drawFlameSprite(
-      ctx,
-      fx,
-      sy + h * 0.15 + jitter,
-      drawW,
-      frame + i * 2,
-      0.95 * flick,
-      palette,
-    );
-  }
-
-  // Side licks climbing the vertical edges.
-  drawFlameSprite(
-    ctx,
-    sx + w * 0.08,
-    sy + h * 0.55,
-    w * 0.4,
-    frame + 3,
-    0.85 * flick,
-    palette,
-  );
-  drawFlameSprite(
-    ctx,
-    sx + w * 0.92,
-    sy + h * 0.55,
-    w * 0.4,
-    frame + 5,
-    0.85 * flick,
-    palette,
-  );
-
-  // Rising embers.
-  if (!reduced) {
-    const ember = Math.max(1, w * 0.035);
-    for (let i = 0; i < 6; i++) {
-      const ex = sx + w * (0.12 + 0.76 * flameRand(seed + i, i * 3.1));
-      const speed = 0.02 + 0.02 * flameRand(i, seed);
-      const prog = ((time * speed + flameRand(i, seed + 7) * 100) % 100) / 100;
-      const ey = sy - prog * h * 1.2;
-      ctx.save();
-      ctx.globalAlpha = (1 - prog) * 0.8;
-      ctx.fillStyle = prog < 0.5 ? palette.flameCore : palette.flameOuter;
-      ctx.fillRect(snapValue(ctx, ex), snapValue(ctx, ey), ember, ember);
-      ctx.restore();
+      const heat =
+        (1 - dist / effBand) *
+        (0.55 + 0.45 * flameRand(seed + phase, (xx - sx) * 7 + (yy - sy) * 13));
+      ctx.fillStyle =
+        heat > 0.68
+          ? palette.flameCore
+          : heat > 0.4
+            ? palette.flameMid
+            : palette.flameOuter;
+      ctx.fillRect(snapValue(ctx, xx), snapValue(ctx, yy), block, block);
     }
   }
+  ctx.restore();
 }
 
 export function drawGrid(
@@ -600,10 +493,9 @@ export function drawGrid(
     }
   }
 
-  // "Hot" bricks: blazing perimeter fire.
+  // "Hot" bricks: a contained burning outline.
   if (hotKeys && hotKeys.size > 0 && cellW >= CARD_MIN_PX) {
     const time = performance.now();
-    const frame = prefersReducedMotion() ? 0 : Math.floor(time / 80);
     for (const key of hotKeys) {
       const [xs, ys] = key.split(":");
       const x = Number(xs);
@@ -612,7 +504,7 @@ export function drawGrid(
       const sx = toScreenX(x) + margin;
       const sy = toScreenY(y) + margin;
       const seed = ((x * 73856093) ^ (y * 19349663)) >>> 0;
-      drawBrickFire(ctx, sx, sy, cardW, cardH, seed, frame, time, palette, radius);
+      drawBrickFire(ctx, sx, sy, cardW, cardH, seed, time, palette, radius);
     }
   }
 
