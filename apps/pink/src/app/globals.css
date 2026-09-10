@@ -8,28 +8,47 @@
 
   --cw-theme: pink;
 
-  --background: #ffffff;
-  --foreground: #5b4b5e;
-  --card: #fdf0f7;
-  --accent: #f9a8d4;
-  --on-accent: #5c1a3d;
+  --background: #fcf9ea;
+  --foreground: #6d4a4a;
+  --card: #ffffff;
+  --accent: #ffa4a4;
+  --on-accent: #5c2e2e;
 
-  --panel-bg: rgba(255, 255, 255, 0.7);
-  --panel-border: rgba(236, 72, 153, 0.15);
+  --panel-bg: #ffffff;
+  --panel-border: #ffbdbd;
   --panel-radius: 22px;
 
-  --hl-bg: #fff5fb;
-  --hl-fg: #5b4b5e;
+  --surface-image: none;
+
+  --overlay-bg: rgba(109, 74, 74, 0.35);
+
+  --chip-bg: #6d4a4a;
+  --chip-fg: #fcf9ea;
+
+  --field-bg: #fffdf6;
+  --field-border: #ffbdbd;
+
+  --soft-accent: #ffe3e3;
+
+  --hover-bg: rgba(109, 74, 74, 0.08);
+  --hover-bg-strong: rgba(109, 74, 74, 0.14);
+
+  --comment-bg-1: #fff3e9;
+  --comment-bg-2: #fff7f0;
+  --comment-bg-3: #fffbf6;
+
+  --hl-bg: #ffbdbd;
+  --hl-fg: #6d4a4a;
   --hl-font: Georgia, "Times New Roman", "Iowan Old Style", serif;
   --hl-radius: 14px;
 
-  --cw-bg: #ffffff;
-  --cw-cell-empty: #fef6fa;
-  --cw-cell-filled: #f9a8d4;
-  --cw-cell-locked: #fde68a;
-  --cw-cell-selected: #a5d8ff;
-  --cw-cell-hover: #fbcfe8;
-  --cw-grid-line: rgba(236, 72, 153, 0.12);
+  --cw-bg: #fcf9ea;
+  --cw-cell-empty: #f2ecd6;
+  --cw-cell-filled: #ffa4a4;
+  --cw-cell-locked: #badfdb;
+  --cw-cell-selected: #6ba8a1;
+  --cw-cell-hover: #ffbdbd;
+  --cw-grid-line: rgba(255, 164, 164, 0.3);
 }
 
 html,

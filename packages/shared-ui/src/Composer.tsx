@@ -49,7 +49,7 @@ export function Composer({ open, cell, count, onClose, onSubmit }: ComposerProps
           exit={{ y: "100%" }}
           transition={{ type: "spring", stiffness: 320, damping: 32 }}
         >
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-card p-5 shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl border border-[var(--panel-border)] bg-card bg-paper p-5 shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Write your confession</h2>
@@ -82,7 +82,7 @@ export function Composer({ open, cell, count, onClose, onSubmit }: ComposerProps
               onChange={(e) => setMessage(e.target.value)}
               maxLength={MAX_MESSAGE_LENGTH}
               placeholder="What do you need to say?"
-              className="h-32 w-full resize-none rounded-xl border border-white/10 bg-white/5 p-3 text-base outline-none placeholder:opacity-40 focus:border-accent"
+              className="h-32 w-full resize-none rounded-xl border border-[var(--field-border)] bg-[var(--field-bg)] p-3 text-base outline-none placeholder:opacity-40 focus:border-accent"
             />
 
             <div className="mt-3 flex items-center justify-between">

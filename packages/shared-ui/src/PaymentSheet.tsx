@@ -32,13 +32,13 @@ export function PaymentSheet({ checkout, onClose, onPaid }: PaymentSheetProps) {
       {checkout && (
         <motion.div
           key="payment"
-          className="absolute inset-0 z-30 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          className="absolute inset-0 z-30 flex items-center justify-center bg-[var(--overlay-bg)] p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="w-full max-w-sm rounded-2xl border border-white/10 bg-card p-6 text-center shadow-2xl"
+            className="w-full max-w-sm rounded-2xl border border-[var(--panel-border)] bg-card bg-paper p-6 text-center shadow-2xl"
             initial={{ scale: 0.9, rotateX: -25 }}
             animate={{ scale: 1, rotateX: 0 }}
             exit={{ scale: 0.9, opacity: 0 }}

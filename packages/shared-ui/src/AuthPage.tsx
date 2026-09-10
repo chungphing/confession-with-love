@@ -51,11 +51,11 @@ export function AuthPage({ mode }: AuthPageProps) {
   };
 
   const inputClass =
-    "rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 outline-none placeholder:opacity-40 focus:border-accent";
+    "rounded-xl border border-[var(--field-border)] bg-[var(--field-bg)] px-3.5 py-2.5 outline-none placeholder:opacity-40 focus:border-accent";
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-10">
-      <div className="w-full max-w-sm rounded-[var(--panel-radius)] border border-[var(--panel-border)] bg-card p-8 shadow-2xl">
+      <div className="w-full max-w-sm rounded-[var(--panel-radius)] border border-[var(--panel-border)] bg-card bg-paper p-8 shadow-2xl">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent text-on-accent">
             <Icon icon="clarity:heart-solid" />

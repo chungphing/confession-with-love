@@ -14,6 +14,9 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      backgroundImage: {
+        paper: "var(--surface-image)",
+      },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-rounded", "system-ui", "sans-serif"],
       },

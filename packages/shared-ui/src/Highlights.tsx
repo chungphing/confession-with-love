@@ -89,7 +89,7 @@ export function Highlights({ items, onSelect }: HighlightsProps) {
     theme === "pink" ? [16, 21, 16] : [30, 40, 30];
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[var(--panel-radius)] border border-[var(--panel-border)] bg-[var(--panel-bg)] backdrop-blur-md">
+    <div className="flex h-full flex-col overflow-hidden rounded-[var(--panel-radius)] border border-[var(--panel-border)] bg-[var(--panel-bg)] bg-paper">
       <div className="px-5 pb-2 pt-4">
         <h2 className="text-sm font-semibold uppercase tracking-widest opacity-80">
           Trending

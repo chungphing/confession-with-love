@@ -4,7 +4,6 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Comment, formatRelativeTime, toHue } from "./comments";
 import { useAuth } from "./auth";
-import { useTheme } from "./theme";
 
 interface CommentSectionProps {
   comments: Comment[];
@@ -26,7 +25,6 @@ function Avatar({ name, hue }: { name: string; hue: number }) {
 interface CommentItemProps {
   comment: Comment;
   depth: number;
-  isPink: boolean;
   childrenByParent: Map<string | null, Comment[]>;
   replyingTo: string | null;
   onReply: (id: string) => void;
@@ -36,17 +34,18 @@ interface CommentItemProps {
   now: number;
 }
 
-function cardBgFor(depth: number, isPink: boolean): string {
-  const levels = isPink
-    ? ["bg-black/[0.06]", "bg-black/[0.045]", "bg-black/[0.03]"]
-    : ["bg-white/[0.07]", "bg-white/[0.05]", "bg-white/[0.035]"];
+function cardBgFor(depth: number): string {
+  const levels = [
+    "bg-[var(--comment-bg-1)]",
+    "bg-[var(--comment-bg-2)]",
+    "bg-[var(--comment-bg-3)]",
+  ];
   return levels[Math.min(depth, levels.length - 1)];
 }
 
 function CommentItem({
   comment,
   depth,
-  isPink,
   childrenByParent,
   replyingTo,
   onReply,
@@ -63,7 +62,7 @@ function CommentItem({
 
   return (
     <div className={depth === 0 ? "" : "ml-3"}>
-      <div className={`rounded-2xl px-3.5 py-3 ${cardBgFor(depth, isPink)}`}>
+      <div className={`rounded-2xl px-3.5 py-3 ${cardBgFor(depth)}`}>
         <div className="flex items-start gap-2.5">
           <Avatar name={comment.author} hue={comment.hue} />
           <div className="min-w-0 flex-1">
@@ -96,7 +95,6 @@ function CommentItem({
               key={child.id}
               comment={child}
               depth={depth + 1}
-              isPink={isPink}
               childrenByParent={childrenByParent}
               replyingTo={replyingTo}
               onReply={onReply}
@@ -142,7 +140,7 @@ function ReplyForm({ onSubmit }: { onSubmit: (text: string) => void }) {
         onChange={(e) => setText(e.target.value)}
         placeholder="Reply…"
         autoFocus
-        className="min-w-0 flex-1 rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3 py-1.5 text-sm outline-none placeholder:opacity-40 focus:border-accent"
+        className="min-w-0 flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 py-1.5 text-sm outline-none placeholder:opacity-40 focus:border-accent"
       />
       <button
         type="submit"
@@ -158,8 +156,6 @@ function ReplyForm({ onSubmit }: { onSubmit: (text: string) => void }) {
 export function CommentSection({ comments }: CommentSectionProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const theme = useTheme();
-  const isPink = theme === "pink";
 
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
   const [newText, setNewText] = useState("");
@@ -231,7 +227,7 @@ export function CommentSection({ comments }: CommentSectionProps) {
         <h3 className="text-sm font-semibold uppercase tracking-widest opacity-80">
           Comments
         </h3>
-        <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent">
+        <span className="rounded-full bg-[var(--soft-accent)] px-2.5 py-0.5 text-xs font-semibold text-accent">
           {localComments.length}
         </span>
       </div>
@@ -248,7 +244,6 @@ export function CommentSection({ comments }: CommentSectionProps) {
                 key={root.id}
                 comment={root}
                 depth={0}
-                isPink={isPink}
                 childrenByParent={childrenByParent}
                 replyingTo={replyingTo}
                 onReply={setReplyingTo}
@@ -274,7 +269,7 @@ export function CommentSection({ comments }: CommentSectionProps) {
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
             placeholder={user ? "Write a comment…" : "Log in to comment…"}
-            className="min-w-0 flex-1 rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] px-4 py-2.5 text-sm outline-none placeholder:opacity-40 focus:border-accent"
+            className="min-w-0 flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2.5 text-sm outline-none placeholder:opacity-40 focus:border-accent"
           />
           <button
             type="submit"

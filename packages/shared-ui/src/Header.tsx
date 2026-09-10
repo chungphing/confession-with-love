@@ -11,7 +11,7 @@ interface HeaderProps {
 
 export function Header({ user, onLogout }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between border-b border-[var(--panel-border)] bg-[var(--panel-bg)] px-4 py-3 backdrop-blur-md">
+    <header className="flex items-center justify-between border-b border-[var(--panel-border)] bg-[var(--panel-bg)] bg-paper px-4 py-3">
       <div className="flex items-center gap-2.5">
         <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-on-accent">
           <Icon icon="clarity:heart-solid" />
@@ -38,7 +38,7 @@ export function Header({ user, onLogout }: HeaderProps) {
       ) : (
         <Link
           href="/login"
-          className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-sm font-semibold transition hover:bg-white/20"
+          className="grid h-9 w-9 place-items-center rounded-full bg-[var(--hover-bg)] text-sm font-semibold transition hover:bg-[var(--hover-bg-strong)]"
           aria-label="Log in"
         >
           <Icon icon="clarity:user-line" width={18} height={18} />

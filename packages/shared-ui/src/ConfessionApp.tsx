@@ -41,13 +41,13 @@ const BACKEND_URL =
 const SELECT_MAX = 100;
 
 const DEFAULT_PALETTE: Palette = {
-  bg: "#0b0b0f",
-  cellEmpty: "#1a1a22",
-  cellFilled: "#ec4899",
-  cellLocked: "#f59e0b",
-  cellSelected: "#ffffff",
-  cellHover: "#ffffff",
-  gridLine: "rgba(255,255,255,0.08)",
+  bg: "#fcf9ea",
+  cellEmpty: "#f2ecd6",
+  cellFilled: "#ffa4a4",
+  cellLocked: "#badfdb",
+  cellSelected: "#6ba8a1",
+  cellHover: "#ffbdbd",
+  gridLine: "rgba(255,164,164,0.3)",
 };
 
 function readPalette(): Palette {
@@ -639,7 +639,7 @@ export function ConfessionApp() {
 
         {marquee && (
           <div
-            className="pointer-events-none absolute z-10 rounded-sm border border-white/70 bg-white/10"
+            className="pointer-events-none absolute z-10 rounded-sm border border-[var(--accent)] bg-[var(--hover-bg)]"
             style={{
               left: marquee.x0,
               top: marquee.y0,
@@ -665,7 +665,7 @@ export function ConfessionApp() {
 
         {selectMode && selection.size === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-4 z-10 flex justify-center">
-            <div className="rounded-full bg-black/70 px-4 py-2 text-sm text-white backdrop-blur">
+            <div className="rounded-full bg-[var(--chip-bg)] px-4 py-2 text-sm text-[var(--chip-fg)]">
               Drag to select cells · click to toggle
             </div>
           </div>
@@ -676,10 +676,10 @@ export function ConfessionApp() {
             onClick={toggleSelectMode}
             aria-label="Select multiple cells"
             title="Select multiple cells"
-            className={`pointer-events-auto grid h-12 w-12 place-items-center rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] backdrop-blur-md transition ${
+            className={`pointer-events-auto grid h-12 w-12 place-items-center rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] bg-paper transition ${
               selectMode
                 ? "text-accent ring-2 ring-accent"
-                : "text-white hover:bg-white/10"
+                : "text-[var(--foreground)] hover:bg-[var(--hover-bg)]"
             }`}
           >
             <Icon icon="clarity:grid-view-line" width={20} height={20} />
@@ -688,7 +688,7 @@ export function ConfessionApp() {
 
         {selectMode && selection.size > 0 && (
           <div className="pointer-events-none absolute inset-x-0 bottom-20 z-10 flex justify-center">
-            <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-black/70 py-2 pl-4 pr-2 text-sm text-white backdrop-blur">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-[var(--chip-bg)] py-2 pl-4 pr-2 text-sm text-[var(--chip-fg)]">
               <span>
                 {selection.size} cell{selection.size > 1 ? "s" : ""} · $
                 {(CELL_PRICE_USD * selection.size).toFixed(2)}
@@ -717,7 +717,7 @@ export function ConfessionApp() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
-            className="pointer-events-none absolute bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-black/80 px-4 py-2 text-sm text-white backdrop-blur"
+            className="pointer-events-none absolute bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-[var(--chip-bg)] px-4 py-2 text-sm text-[var(--chip-fg)]"
           >
             {toast}
           </motion.div>

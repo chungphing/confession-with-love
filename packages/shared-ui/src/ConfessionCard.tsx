@@ -25,7 +25,7 @@ export function ConfessionCard({
       {confession && (
         <motion.div
           key="viewer"
-          className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+          className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--overlay-bg)] p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -75,11 +75,7 @@ export function ConfessionCard({
                     <button
                       key={emoji}
                       onClick={() => onReact(emoji)}
-                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition hover:scale-105 active:scale-95 ${
-                        isPink
-                          ? "border-black/10 bg-black/5 hover:bg-black/10"
-                          : "border-white/10 bg-white/5 hover:bg-white/10"
-                      }`}
+                      className="flex items-center gap-1.5 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 py-1.5 text-sm transition hover:scale-105 hover:bg-[var(--hover-bg)] active:scale-95"
                     >
                       <span>{emoji}</span>
                       <span className="font-semibold">{count}</span>
@@ -90,7 +86,7 @@ export function ConfessionCard({
             </motion.div>
 
             <motion.div
-              className="flex max-h-[50vh] w-full min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--panel-radius)] border border-[var(--panel-border)] bg-card font-sans shadow-2xl sm:max-h-none"
+              className="flex max-h-[50vh] w-full min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--panel-radius)] border border-[var(--panel-border)] bg-card bg-paper font-sans shadow-2xl sm:max-h-none"
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 24 }}
