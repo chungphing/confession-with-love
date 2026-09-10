@@ -9,6 +9,8 @@ const config: Config = {
     extend: {
       colors: {
         accent: "var(--accent)",
+        "accent-dark": "var(--accent-dark)",
+        live: "var(--live)",
         card: "var(--card)",
         "on-accent": "var(--on-accent)",
         background: "var(--background)",
@@ -19,6 +21,11 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "Inter", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)", "Georgia", "serif"],
+        pixel: ["var(--font-pixel)", "monospace"],
+      },
+      boxShadow: {
+        pixel: "2px 2px 0 var(--shadow-pixel)",
       },
     },
   },

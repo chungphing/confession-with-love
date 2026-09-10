@@ -3,52 +3,65 @@
 @tailwind utilities;
 
 :root {
-  --font-sans: "Hiragino Maru Gothic ProN", "Quicksand", ui-rounded,
-    "SF Pro Rounded", system-ui, sans-serif;
+  --font-sans: var(--font-rubik), "Rubik", ui-sans-serif, -apple-system,
+    "Segoe UI", system-ui, sans-serif;
+  --font-serif: var(--font-literata), "Literata", Georgia, "Times New Roman",
+    serif;
+  --font-pixel: "Press Start 2P", ui-monospace, "SFMono-Regular", monospace;
 
   --cw-theme: pink;
 
-  --background: #fcf9ea;
-  --foreground: #6d4a4a;
-  --card: #ffffff;
-  --accent: #ffa4a4;
-  --on-accent: #5c2e2e;
+  --background: #f5efeb;
+  --foreground: #27272a;
+  --card: #fbf9f5;
+  --accent: #e11d48;
+  --on-accent: #ffffff;
+  --accent-dark: #9f1239;
+  --live: #10b981;
 
-  --panel-bg: #ffffff;
-  --panel-border: #ffbdbd;
-  --panel-radius: 22px;
+  --panel-bg: rgba(251, 249, 245, 0.92);
+  --panel-border: rgba(231, 229, 228, 0.9);
+  --panel-radius: 28px;
 
   --surface-image: none;
 
-  --overlay-bg: rgba(109, 74, 74, 0.35);
+  --overlay-bg: rgba(39, 39, 42, 0.25);
 
-  --chip-bg: #6d4a4a;
-  --chip-fg: #fcf9ea;
+  --chip-bg: #27272a;
+  --chip-fg: #fbf9f5;
 
-  --field-bg: #fffdf6;
-  --field-border: #ffbdbd;
+  --field-bg: #f4f3ef;
+  --field-border: #e7e5e4;
 
-  --soft-accent: #ffe3e3;
+  --soft-accent: #fff1f2;
 
-  --hover-bg: rgba(109, 74, 74, 0.08);
-  --hover-bg-strong: rgba(109, 74, 74, 0.14);
+  --hover-bg: rgba(39, 39, 42, 0.05);
+  --hover-bg-strong: rgba(39, 39, 42, 0.1);
 
-  --comment-bg-1: #fff3e9;
-  --comment-bg-2: #fff7f0;
-  --comment-bg-3: #fffbf6;
+  --comment-bg-1: #f8f2f6;
+  --comment-bg-2: #fbf7fa;
+  --comment-bg-3: #fefbfd;
 
-  --hl-bg: #ffbdbd;
-  --hl-fg: #6d4a4a;
-  --hl-font: Georgia, "Times New Roman", "Iowan Old Style", serif;
-  --hl-radius: 14px;
+  --hl-bg: #fff1f4;
+  --hl-fg: #27272a;
+  --hl-font: var(--font-serif);
+  --hl-radius: 16px;
 
-  --cw-bg: #fcf9ea;
-  --cw-cell-empty: #f2ecd6;
-  --cw-cell-filled: #ffa4a4;
-  --cw-cell-locked: #badfdb;
-  --cw-cell-selected: #6ba8a1;
-  --cw-cell-hover: #ffbdbd;
-  --cw-grid-line: rgba(255, 164, 164, 0.3);
+  --shadow-pixel: #9f1239;
+
+  --cw-bg: #f5efeb;
+  --cw-dot: #d6cdbc;
+  --cw-cell-empty: #efe9de;
+  --cw-cell-empty-border: #dfd5c4;
+  --cw-cell-filled: #fff1f4;
+  --cw-cell-filled-border: #fda4af;
+  --cw-cell-locked: #e7e5e4;
+  --cw-cell-locked-border: #d6d3d1;
+  --cw-cell-selected: #e11d48;
+  --cw-cell-hover: #fecdd3;
+  --cw-cell-icon: #e11d48;
+  --cw-grid-line: rgba(214, 205, 188, 0.5);
+  --cw-cell-radius: 12px;
 }
 
 html,
@@ -59,4 +72,32 @@ body {
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Subtle dot grid pattern behind the transparent canvas. */
+.canvas-dots {
+  background-color: var(--cw-bg);
+  background-image: radial-gradient(var(--cw-dot) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Tactile pixel-offset shadow used on primary buttons. */
+.shadow-pixel {
+  box-shadow: 2px 2px 0 var(--shadow-pixel);
+}
+
+/* Thin custom scrollbar for the trending drawer. */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--cw-dot);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cw-cell-empty-border);
 }

@@ -70,7 +70,7 @@ export function PaymentSheet({ checkout, onClose, onPaid }: PaymentSheetProps) {
             <button
               onClick={handlePaid}
               disabled={paying}
-              className="w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-on-accent transition disabled:opacity-40"
+              className="shadow-pixel w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-on-accent transition active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-40 disabled:shadow-none"
             >
               {paying ? "Confirming…" : "Simulate scan & pay"}
             </button>

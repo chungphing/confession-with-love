@@ -9,14 +9,19 @@ export interface Camera {
 
 export interface Palette {
   bg: string;
+  dot: string;
   cellEmpty: string;
+  cellEmptyBorder: string;
   cellFilled: string;
+  cellFilledBorder: string;
   cellLocked: string;
+  cellLockedBorder: string;
   cellSelected: string;
   cellHover: string;
-  gridLine: string;
-  theme: "pink" | "minimal";
   cellIcon: string;
+  gridLine: string;
+  cellRadius: number;
+  theme: "pink" | "minimal";
 }
 
 export interface LockedCell {
@@ -87,7 +92,7 @@ function roundRectPath(
   ctx.closePath();
 }
 
-// --- active-cell pixel-art buttons + icons ---
+// --- pixel-art buttons + icons (retro accents) ---
 
 const PIXEL_HEART = [
   "011000110",
@@ -180,6 +185,7 @@ function drawPixelButton(
   w: number,
   h: number,
   base: string,
+  outline?: string,
 ): void {
   const x = snapValue(ctx, sx);
   const y = snapValue(ctx, sy);
@@ -196,16 +202,20 @@ function drawPixelButton(
   pixelRoundRectPath(ctx, x, y, ww, hh, corner);
   ctx.clip();
 
-  ctx.fillStyle = base;
-  ctx.fillRect(x, y, ww, hh);
-
-  ctx.fillStyle = "rgba(0,0,0,0.45)";
-  ctx.fillRect(x, y, ww, hh);
+  if (outline) {
+    ctx.fillStyle = outline;
+    ctx.fillRect(x, y, ww, hh);
+  } else {
+    ctx.fillStyle = base;
+    ctx.fillRect(x, y, ww, hh);
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(x, y, ww, hh);
+  }
 
   ctx.fillStyle = base;
   ctx.fillRect(x + border, y + border, faceW, faceH);
 
-  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.fillRect(x + border, y + hh - border - bevel, faceW, bevel);
 
   ctx.fillStyle = "rgba(255,255,255,0.5)";
@@ -272,8 +282,8 @@ export function drawGrid(
   palette: Palette,
   selectedCells: Set<string> | null = null,
 ): void {
-  ctx.fillStyle = palette.bg;
-  ctx.fillRect(0, 0, width, height);
+  // Transparent canvas: the dotted parchment pattern shows through from CSS.
+  ctx.clearRect(0, 0, width, height);
 
   const cellW = CELL_W * cam.scale;
   const cellH = CELL_H * cam.scale;
@@ -290,39 +300,53 @@ export function drawGrid(
   const margin = Math.min(cellW, cellH) * 0.1;
   const cardW = Math.max(0, cellW - margin * 2);
   const cardH = Math.max(0, cellH - margin * 2);
-  const radius = Math.min(cardW, cardH) * 0.18;
+  const radius = Math.max(2, Math.min(cardW, cardH) * 0.18);
+  const isPink = palette.theme === "pink";
 
-  const drawCard = (x: number, y: number, color: string) => {
+  const inView = (x: number, y: number) =>
+    x >= xStart && x < xEnd && y >= yStart && y < yEnd;
+
+  const drawBrick = (x: number, y: number, fill: string, border: string) => {
     const sx = toScreenX(x) + margin;
     const sy = toScreenY(y) + margin;
-    ctx.fillStyle = color;
     if (cellW >= CARD_MIN_PX) {
       roundRectPath(ctx, sx, sy, cardW, cardH, radius);
+      ctx.fillStyle = fill;
       ctx.fill();
+
+      // Tight paper depth: top highlight + bottom shadow (no blur).
+      const inset = radius * 0.6;
+      const lineW = Math.max(1, cardW - inset * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.fillRect(sx + inset, sy + 1, lineW, 1);
+      ctx.fillStyle = "rgba(80,60,40,0.07)";
+      ctx.fillRect(sx + inset, sy + cardH - 2, lineW, 1);
+
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 1;
+      roundRectPath(ctx, sx, sy, cardW, cardH, radius);
+      ctx.stroke();
     } else {
+      ctx.fillStyle = fill;
       ctx.fillRect(sx, sy, cardW, cardH);
     }
   };
-
-  const isPink = palette.theme === "pink";
 
   const drawCellIcon = (x: number, y: number) => {
     if (cellW < CARD_MIN_PX) return;
     const sx = toScreenX(x) + margin;
     const sy = toScreenY(y) + margin;
-    const iconSize = Math.min(cardW, cardH) * 0.55;
+    const iconSize = Math.min(cardW, cardH) * 0.6;
     const cx = sx + cardW / 2;
     const cy = sy + cardH / 2;
     if (isPink) {
-      drawPixelHeart(ctx, cx, cy, iconSize, palette.cellIcon, 0.5);
+      drawPixelHeart(ctx, cx, cy, iconSize, palette.cellIcon, 0.9);
     } else {
-      drawCheck(ctx, cx, cy, iconSize, palette.cellIcon, 0.5);
+      drawCheck(ctx, cx, cy, iconSize, palette.cellIcon, 0.9);
     }
   };
 
-  // Bought (active) cells: a raised pixel-art button on pink, a flat card
-  // elsewhere, both carrying a low-opacity icon.
-  const drawFilledCell = (x: number, y: number) => {
+  const drawClaimed = (x: number, y: number) => {
     if (cellW < CARD_MIN_PX) {
       ctx.fillStyle = palette.cellFilled;
       ctx.fillRect(
@@ -341,36 +365,36 @@ export function drawGrid(
         cardW,
         cardH,
         palette.cellFilled,
+        palette.cellFilledBorder,
       );
     } else {
-      drawCard(x, y, palette.cellFilled);
+      drawBrick(x, y, palette.cellFilled, palette.cellFilledBorder);
     }
     drawCellIcon(x, y);
   };
 
   if (cellW >= CARD_MIN_PX) {
-    // Card mode: every cell in view is drawn as a rounded card.
     for (let y = yStart; y < yEnd; y++) {
       for (let x = xStart; x < xEnd; x++) {
-        drawCard(x, y, palette.cellEmpty);
+        drawBrick(x, y, palette.cellEmpty, palette.cellEmptyBorder);
       }
     }
     for (const c of confessions.values()) {
-      if (c.x < xStart || c.x >= xEnd || c.y < yStart || c.y >= yEnd) continue;
-      drawFilledCell(c.x, c.y);
+      if (!inView(c.x, c.y)) continue;
+      drawClaimed(c.x, c.y);
     }
     for (const l of locked.values()) {
-      if (l.x < xStart || l.x >= xEnd || l.y < yStart || l.y >= yEnd) continue;
-      drawCard(l.x, l.y, palette.cellLocked);
+      if (!inView(l.x, l.y)) continue;
+      drawBrick(l.x, l.y, palette.cellLocked, palette.cellLockedBorder);
     }
   } else {
-    // Far zoom: only meaningful cells are drawn as points.
     for (const c of confessions.values()) {
-      if (c.x < xStart || c.x >= xEnd || c.y < yStart || c.y >= yEnd) continue;
-      drawFilledCell(c.x, c.y);
+      if (!inView(c.x, c.y)) continue;
+      ctx.fillStyle = palette.cellFilled;
+      ctx.fillRect(toScreenX(c.x), toScreenY(c.y), Math.max(1, cellW), Math.max(1, cellH));
     }
     for (const l of locked.values()) {
-      if (l.x < xStart || l.x >= xEnd || l.y < yStart || l.y >= yEnd) continue;
+      if (!inView(l.x, l.y)) continue;
       ctx.fillStyle = palette.cellLocked;
       ctx.fillRect(toScreenX(l.x), toScreenY(l.y), Math.max(1, cellW), Math.max(1, cellH));
     }
@@ -386,38 +410,61 @@ export function drawGrid(
     GRID_WORLD_H * cam.scale,
   );
 
-  const strokeCard = (x: number, y: number, color: string, width: number) => {
+  const fillCard = (x: number, y: number, color: string, alpha: number) => {
     const sx = toScreenX(x) + margin;
     const sy = toScreenY(y) + margin;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    if (cellW >= CARD_MIN_PX) {
+      roundRectPath(ctx, sx, sy, cardW, cardH, radius);
+      ctx.fill();
+    } else {
+      ctx.fillRect(sx, sy, cardW, cardH);
+    }
+    ctx.restore();
+  };
+
+  const strokeCard = (
+    x: number,
+    y: number,
+    color: string,
+    lineWidth: number,
+    dash: number[] | null = null,
+  ) => {
+    const sx = toScreenX(x) + margin;
+    const sy = toScreenY(y) + margin;
+    ctx.save();
     ctx.strokeStyle = color;
-    ctx.lineWidth = width;
+    ctx.lineWidth = lineWidth;
+    if (dash) ctx.setLineDash(dash);
     if (cellW >= CARD_MIN_PX) {
       roundRectPath(ctx, sx, sy, cardW, cardH, radius);
       ctx.stroke();
     } else {
       ctx.strokeRect(sx, sy, cardW, cardH);
     }
+    ctx.restore();
   };
 
   if (selectedCells && selectedCells.size > 0) {
+    const dash = [Math.max(3, cellW * 0.14), Math.max(3, cellW * 0.1)];
     for (const key of selectedCells) {
       const [xs, ys] = key.split(":");
       const x = Number(xs);
       const y = Number(ys);
-      if (x < xStart || x >= xEnd || y < yStart || y >= yEnd) continue;
-      ctx.save();
-      ctx.globalAlpha = 0.35;
-      drawCard(x, y, palette.cellSelected);
-      ctx.restore();
-      strokeCard(x, y, palette.cellSelected, Math.max(1.5, cellW * 0.08));
+      if (!inView(x, y)) continue;
+      fillCard(x, y, palette.cellSelected, 0.16);
+      strokeCard(x, y, palette.cellSelected, Math.max(1.5, cellW * 0.06), dash);
     }
   }
 
-  if (hover && hover.x >= xStart && hover.x < xEnd && hover.y >= yStart && hover.y < yEnd) {
-    strokeCard(hover.x, hover.y, palette.cellHover, Math.max(1, cellW * 0.035));
+  if (hover && inView(hover.x, hover.y)) {
+    strokeCard(hover.x, hover.y, palette.cellHover, Math.max(1, cellW * 0.045));
   }
 
   if (selected) {
-    strokeCard(selected.x, selected.y, palette.cellSelected, Math.max(2, cellW * 0.2));
+    fillCard(selected.x, selected.y, palette.cellSelected, 0.16);
+    strokeCard(selected.x, selected.y, palette.cellSelected, Math.max(2, cellW * 0.08));
   }
 }

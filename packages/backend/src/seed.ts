@@ -2,16 +2,16 @@ import { randomUUID } from "node:crypto";
 import { Confession } from "@confession/shared";
 
 const MESSAGES = [
+  "Thank you for being my calm in the chaos.",
+  "Wish I had said this in person... I miss you every autumn.",
+  "You were my favorite hello and my hardest goodbye.",
+  "I loved you then, I love you now.",
+  "One day I'll be brave enough to say this out loud.",
   "I still think about you every single day.",
   "You make ordinary moments feel like magic.",
   "I never told you, but you changed my life.",
-  "Wish I had said this in person: I miss you.",
-  "The best part of my day is seeing your name.",
-  "Thank you for being my calm in the chaos.",
-  "I loved you then, I love you now.",
   "You are the reason I believe in second chances.",
-  "One day I'll be brave enough to say this out loud.",
-  "You were my favorite hello and my hardest goodbye.",
+  "The best part of my day is seeing your name.",
 ];
 
 export function buildSeed(): Confession[] {

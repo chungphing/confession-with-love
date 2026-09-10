@@ -61,7 +61,7 @@ export function AuthPage({ mode }: AuthPageProps) {
             <Icon icon="clarity:heart-solid" />
           </span>
           <div>
-            <h1 className="text-xl font-bold">
+            <h1 className="font-serif text-xl font-bold">
               {isLogin ? "Welcome back" : "Create an account"}
             </h1>
             <p className="mt-1 text-sm opacity-60">
@@ -122,7 +122,7 @@ export function AuthPage({ mode }: AuthPageProps) {
 
           <button
             type="submit"
-            className="mt-1 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition hover:brightness-105"
+            className="shadow-pixel mt-1 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition hover:brightness-105 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
           >
             {isLogin ? "Log in" : "Create account"}
           </button>

@@ -2,122 +2,94 @@
 
 import { motion } from "framer-motion";
 import { Confession } from "@confession/shared";
-import { useTheme } from "./theme";
-
-function topReaction(c: Confession): { emoji: string; count: number } | null {
-  const entries = Object.entries(c.reactions);
-  if (entries.length === 0) return null;
-  const [emoji, count] = entries.sort((a, b) => b[1] - a[1])[0];
-  return { emoji, count };
-}
-
-interface MarqueeCardProps {
-  c: Confession;
-  theme: "pink" | "minimal";
-  onSelect: (c: Confession) => void;
-}
-
-function MarqueeCard({ c, theme, onSelect }: MarqueeCardProps) {
-  const top = topReaction(c);
-  return (
-    <motion.button
-      onClick={() => onSelect(c)}
-      whileHover={theme === "pink" ? { scale: 1.04, rotate: -1 } : { y: -3 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className="mr-3 flex w-56 shrink-0 flex-col justify-between rounded-[var(--hl-radius)] bg-[var(--hl-bg)] p-3.5 text-left shadow-sm"
-      style={{ color: "var(--hl-fg)", fontFamily: "var(--hl-font)" }}
-    >
-      <p className="line-clamp-2 text-sm leading-snug">{c.message}</p>
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-[11px] opacity-50">
-          ({c.x}, {c.y})
-        </span>
-        {top && (
-          <span className="text-xs font-semibold">
-            {top.emoji} {top.count}
-          </span>
-        )}
-      </div>
-    </motion.button>
-  );
-}
-
-interface MarqueeRowProps {
-  items: Confession[];
-  reverse: boolean;
-  duration: number;
-  theme: "pink" | "minimal";
-  onSelect: (c: Confession) => void;
-}
-
-function MarqueeRow({
-  items,
-  reverse,
-  duration,
-  theme,
-  onSelect,
-}: MarqueeRowProps) {
-  const doubled = [...items, ...items];
-  return (
-    <div className="overflow-hidden">
-      <motion.div
-        className="flex"
-        style={{ width: "max-content" }}
-        animate={{ x: reverse ? ["-50%", "0%"] : ["0%", "-50%"] }}
-        transition={{ duration, ease: "linear", repeat: Infinity }}
-      >
-        {doubled.map((c, i) => (
-          <MarqueeCard key={`${c.id}-${i}`} c={c} theme={theme} onSelect={onSelect} />
-        ))}
-      </motion.div>
-    </div>
-  );
-}
+import { formatRelativeTime } from "./comments";
+import { Icon } from "./icons";
 
 interface HighlightsProps {
   items: Confession[];
   onSelect: (c: Confession) => void;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function heartCount(c: Confession): number {
+  return c.reactions["❤️"] ?? 0;
+}
+
 export function Highlights({ items, onSelect }: HighlightsProps) {
-  const theme = useTheme();
-
-  const rows: Confession[][] = [[], [], []];
-  items.forEach((c, i) => rows[i % 3].push(c));
-
-  const durations =
-    theme === "pink" ? [16, 21, 16] : [30, 40, 30];
+  const now = Date.now();
+  const today = items.filter((c) => now - c.createdAt < DAY_MS).length;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[var(--panel-radius)] border border-[var(--panel-border)] bg-[var(--panel-bg)] bg-paper">
-      <div className="px-5 pb-2 pt-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest opacity-80">
-          Trending
-        </h2>
+    <div className="flex h-full flex-col overflow-hidden rounded-[var(--panel-radius)] border border-[var(--panel-border)] bg-[var(--panel-bg)] shadow-2xl backdrop-blur-xl">
+      <div className="shrink-0 border-b border-[var(--panel-border)] p-6 pb-4">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-accent" />
+            <h2 className="text-xs font-bold uppercase tracking-widest opacity-60">
+              Trending Whispers
+            </h2>
+          </div>
+          <span className="rounded-full border border-[var(--panel-border)] bg-[var(--soft-accent)] px-2 py-0.5 text-[11px] font-semibold text-accent">
+            {today} today
+          </span>
+        </div>
+
+        <div className="relative mt-3 rounded-2xl border border-[var(--panel-border)] bg-[var(--card)] p-3.5 shadow-sm">
+          <div className="absolute -top-2 left-6 rounded bg-[var(--soft-accent)] px-3 py-0.5 text-[10px] font-medium tracking-wide text-accent">
+            ✨ Daily Prompt
+          </div>
+          <p className="mt-1 font-serif text-[13px] leading-snug">
+            “What is something you never had the courage to say aloud to someone
+            you loved?”
+          </p>
+          <div className="mt-2.5 flex items-center justify-between text-[11px]">
+            <span className="opacity-50">142 answers whispered</span>
+            <button className="font-semibold text-accent transition hover:opacity-80">
+              Answer prompt ✍️
+            </button>
+          </div>
+        </div>
       </div>
 
-      {items.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-6">
-          <p className="text-sm opacity-40">
-            No confessions yet — be the first to publish.
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+        {items.length === 0 ? (
+          <p className="px-2 py-6 text-sm opacity-40">
+            No whispers yet — be the first to leave one.
           </p>
-        </div>
-      ) : (
-        <div className="flex flex-1 flex-col justify-center gap-3 overflow-hidden py-3">
-          {rows.map((row, i) =>
-            row.length > 0 ? (
-              <MarqueeRow
-                key={i}
-                items={row}
-                reverse={i === 1}
-                duration={durations[i % durations.length]}
-                theme={theme}
-                onSelect={onSelect}
-              />
-            ) : null,
-          )}
-        </div>
-      )}
+        ) : (
+          items.map((c) => (
+            <motion.button
+              key={c.id}
+              onClick={() => onSelect(c)}
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 320, damping: 24 }}
+              className="block w-full rounded-2xl border border-[var(--panel-border)] bg-[var(--card)] p-4 text-left transition hover:border-[var(--accent)] hover:shadow-md"
+            >
+              <p className="font-serif text-[15px] leading-relaxed">
+                “{c.message}”
+              </p>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 font-mono text-[11px] opacity-40">
+                  <span>
+                    ({c.x}, {c.y})
+                  </span>
+                  <span>·</span>
+                  <span>{formatRelativeTime(c.createdAt, now)}</span>
+                </div>
+                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--panel-border)] bg-[var(--soft-accent)] px-2.5 py-1 text-xs font-semibold text-accent">
+                  <Icon icon="clarity:heart-solid" width={12} height={12} />
+                  {heartCount(c)}
+                </span>
+              </div>
+            </motion.button>
+          ))
+        )}
+      </div>
+
+      <div className="shrink-0 border-t border-[var(--panel-border)] bg-[var(--field-bg)] p-3 text-center text-[11px] font-medium opacity-60">
+        Encrypted &amp; anonymous · Sealed permanently
+      </div>
     </div>
   );
 }

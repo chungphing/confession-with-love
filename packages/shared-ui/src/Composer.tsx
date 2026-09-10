@@ -96,7 +96,7 @@ export function Composer({ open, cell, count, onClose, onSubmit }: ComposerProps
               <button
                 onClick={handleSubmit}
                 disabled={!valid || submitting}
-                className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition disabled:opacity-40"
+                className="shadow-pixel rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-40 disabled:shadow-none"
               >
                 {submitting ? "Reserving…" : "Continue to payment"}
               </button>

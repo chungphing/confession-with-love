@@ -39,17 +39,24 @@ const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:4000";
 
 const SELECT_MAX = 100;
+const BASE_SCALE = MAX_SCALE * 0.8;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const DEFAULT_PALETTE: Palette = {
-  bg: "#fcf9ea",
-  cellEmpty: "#f2ecd6",
-  cellFilled: "#ffa4a4",
-  cellLocked: "#badfdb",
-  cellSelected: "#6ba8a1",
-  cellHover: "#ffbdbd",
-  gridLine: "rgba(255,164,164,0.3)",
+  bg: "#f5efeb",
+  dot: "#d6cdbc",
+  cellEmpty: "#efe9de",
+  cellEmptyBorder: "#dfd5c4",
+  cellFilled: "#fff1f4",
+  cellFilledBorder: "#fda4af",
+  cellLocked: "#e7e5e4",
+  cellLockedBorder: "#d6d3d1",
+  cellSelected: "#e11d48",
+  cellHover: "#fecdd3",
+  cellIcon: "#e11d48",
+  gridLine: "rgba(214,205,188,0.5)",
+  cellRadius: 12,
   theme: "pink",
-  cellIcon: "#fcf9ea",
 };
 
 function readPalette(): Palette {
@@ -59,14 +66,30 @@ function readPalette(): Palette {
     root.getPropertyValue(name).trim() || fallback;
   return {
     bg: val("--cw-bg", DEFAULT_PALETTE.bg),
+    dot: val("--cw-dot", DEFAULT_PALETTE.dot),
     cellEmpty: val("--cw-cell-empty", DEFAULT_PALETTE.cellEmpty),
+    cellEmptyBorder: val(
+      "--cw-cell-empty-border",
+      DEFAULT_PALETTE.cellEmptyBorder,
+    ),
     cellFilled: val("--cw-cell-filled", DEFAULT_PALETTE.cellFilled),
+    cellFilledBorder: val(
+      "--cw-cell-filled-border",
+      DEFAULT_PALETTE.cellFilledBorder,
+    ),
     cellLocked: val("--cw-cell-locked", DEFAULT_PALETTE.cellLocked),
+    cellLockedBorder: val(
+      "--cw-cell-locked-border",
+      DEFAULT_PALETTE.cellLockedBorder,
+    ),
     cellSelected: val("--cw-cell-selected", DEFAULT_PALETTE.cellSelected),
     cellHover: val("--cw-cell-hover", DEFAULT_PALETTE.cellHover),
+    cellIcon: val("--cw-cell-icon", DEFAULT_PALETTE.cellIcon),
     gridLine: val("--cw-grid-line", DEFAULT_PALETTE.gridLine),
+    cellRadius:
+      Number(val("--cw-cell-radius", String(DEFAULT_PALETTE.cellRadius))) ||
+      DEFAULT_PALETTE.cellRadius,
     theme: val("--cw-theme", "pink") === "minimal" ? "minimal" : "pink",
-    cellIcon: val("--cw-bg", DEFAULT_PALETTE.cellIcon),
   };
 }
 
@@ -102,6 +125,7 @@ export function ConfessionApp() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const camRef = useRef<Camera | null>(null);
   const paletteRef = useRef<Palette>(readPalette());
+  const zoomLabelRef = useRef<HTMLSpanElement | null>(null);
 
   const confessionsRef = useRef<Map<string, Confession>>(new Map());
   const lockedRef = useRef<Map<string, { x: number; y: number }>>(new Map());
@@ -184,6 +208,44 @@ export function ConfessionApp() {
       ease: easeInOutCubic,
     };
   }, []);
+
+  const recenter = useCallback(() => {
+    const canvas = canvasRef.current;
+    const cam = camRef.current;
+    if (!canvas || !cam) return;
+    animRef.current = {
+      from: { ...cam },
+      to: initialCamera(canvas.clientWidth, canvas.clientHeight),
+      start: performance.now(),
+      dur: 650,
+      ease: easeInOutCubic,
+    };
+  }, []);
+
+  const zoomBy = useCallback((factor: number) => {
+    const canvas = canvasRef.current;
+    const cam = camRef.current;
+    if (!canvas || !cam) return;
+    animRef.current = null;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const minScale = Math.min(w / GRID_WORLD_W, h / GRID_WORLD_H);
+    const next = Math.min(MAX_SCALE, Math.max(minScale, cam.scale * factor));
+    const worldX = (w / 2 - cam.ox) / cam.scale;
+    const worldY = (h / 2 - cam.oy) / cam.scale;
+    cam.ox = w / 2 - worldX * next;
+    cam.oy = h / 2 - worldY * next;
+    cam.scale = next;
+  }, []);
+
+  const goToCell = useCallback(
+    (x: number, y: number) => {
+      const cx = Math.min(GRID_SIZE - 1, Math.max(0, Math.floor(x)));
+      const cy = Math.min(GRID_SIZE - 1, Math.max(0, Math.floor(y)));
+      flyTo(cx, cy);
+    },
+    [flyTo],
+  );
 
   // --- data: snapshot + socket ---
   useEffect(() => {
@@ -278,6 +340,11 @@ export function ConfessionApp() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
+      if (zoomLabelRef.current) {
+        zoomLabelRef.current.textContent = `${Math.round(
+          (cam.scale / BASE_SCALE) * 100,
+        )}%`;
+      }
       drawGrid(
         ctx,
         w,
@@ -621,11 +688,38 @@ export function ConfessionApp() {
 
   const composerCount = selection.size > 0 ? selection.size : selected ? 1 : 0;
 
-  return (
-    <div className="flex h-dvh w-full flex-col overflow-hidden">
-      <Header user={user} onLogout={() => logout()} />
+  const liveCount = confessions.size;
+  const boughtCount = confessions.size;
+  const totalBricks = GRID_SIZE * GRID_SIZE;
+  const totalLabel =
+    totalBricks >= 1_000_000
+      ? `${totalBricks / 1_000_000}M`
+      : totalBricks.toLocaleString();
 
-      <div className="relative min-h-0 flex-1">
+  const handleConfessCta = () => {
+    if (selection.size > 0 || selected) {
+      beginBulkCompose();
+      return;
+    }
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setSelectMode(true);
+    showToast("Pick bricks on the wall, then buy them.");
+  };
+
+  return (
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">
+      <Header
+        user={user}
+        onLogout={() => logout()}
+        liveCount={liveCount}
+        onGoTo={goToCell}
+        onConfess={handleConfessCta}
+      />
+
+      <div className="canvas-dots relative min-h-0 flex-1">
         <canvas
           ref={canvasRef}
           className={`absolute inset-0 h-full w-full touch-none ${
@@ -637,13 +731,13 @@ export function ConfessionApp() {
           onPointerCancel={onPointerUp}
         />
 
-        <aside className="absolute bottom-3 left-3 top-3 z-10 hidden w-[40%] max-w-md min-w-[260px] md:block">
+        <aside className="absolute bottom-5 left-5 top-5 z-10 hidden w-[420px] max-w-[calc(100vw-40px)] md:block">
           <Highlights items={popular} onSelect={openConfession} />
         </aside>
 
         {marquee && (
           <div
-            className="pointer-events-none absolute z-10 rounded-sm border border-[var(--accent)] bg-[var(--hover-bg)]"
+            className="pointer-events-none absolute z-10 rounded-lg border-2 border-dashed border-[var(--accent)] bg-[var(--soft-accent)]"
             style={{
               left: marquee.x0,
               top: marquee.y0,
@@ -653,48 +747,19 @@ export function ConfessionApp() {
           />
         )}
 
-        <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-2 text-sm">
-          <span
-            className={`h-2 w-2 rounded-full ${
-              connected ? "bg-emerald-400" : "bg-amber-400"
-            }`}
-          />
-          <span className="opacity-70">
-            {connected ? "live" : "connecting…"}
-          </span>
-          <span className="opacity-40">
-            {selectMode ? "· drag to select" : "· drag to pan · scroll to zoom"}
-          </span>
-        </div>
-
         {selectMode && selection.size === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-4 z-10 flex justify-center">
-            <div className="rounded-full bg-[var(--chip-bg)] px-4 py-2 text-sm text-[var(--chip-fg)]">
-              Drag to select cells · click to toggle
+            <div className="rounded-full bg-[var(--chip-bg)] px-4 py-2 text-sm text-[var(--chip-fg)] shadow-lg">
+              Drag to select bricks · click to toggle
             </div>
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">
-          <button
-            onClick={toggleSelectMode}
-            aria-label="Select multiple cells"
-            title="Select multiple cells"
-            className={`pointer-events-auto grid h-12 w-12 place-items-center rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] bg-paper transition ${
-              selectMode
-                ? "text-accent ring-2 ring-accent"
-                : "text-[var(--foreground)] hover:bg-[var(--hover-bg)]"
-            }`}
-          >
-            <Icon icon="clarity:grid-view-line" width={20} height={20} />
-          </button>
-        </div>
-
         {selectMode && selection.size > 0 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-20 z-10 flex justify-center">
-            <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-[var(--chip-bg)] py-2 pl-4 pr-2 text-sm text-[var(--chip-fg)]">
+          <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex justify-center">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-[var(--chip-bg)] py-2 pl-4 pr-2 text-sm text-[var(--chip-fg)] shadow-lg">
               <span>
-                {selection.size} cell{selection.size > 1 ? "s" : ""} · $
+                {selection.size} brick{selection.size > 1 ? "s" : ""} · $
                 {(CELL_PRICE_USD * selection.size).toFixed(2)}
               </span>
               <button
@@ -712,6 +777,71 @@ export function ConfessionApp() {
             </div>
           </div>
         )}
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center px-4">
+          <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3 py-2 shadow-xl backdrop-blur-md">
+            <button
+              onClick={recenter}
+              title="Recenter the wall"
+              aria-label="Recenter the wall"
+              className="grid h-8 w-8 place-items-center rounded-full text-[var(--foreground)] opacity-70 transition hover:bg-[var(--hover-bg)] hover:opacity-100"
+            >
+              <Icon icon="clarity:target-line" width={16} height={16} />
+            </button>
+
+            <div className="flex items-center gap-1 rounded-full border border-[var(--panel-border)] bg-[var(--field-bg)] px-2 py-0.5 text-xs font-medium">
+              <button
+                onClick={() => zoomBy(0.8)}
+                aria-label="Zoom out"
+                className="grid h-5 w-5 place-items-center rounded-full transition hover:bg-[var(--hover-bg)]"
+              >
+                −
+              </button>
+              <span
+                ref={zoomLabelRef}
+                className="w-9 text-center font-mono text-[11px]"
+              >
+                100%
+              </span>
+              <button
+                onClick={() => zoomBy(1.25)}
+                aria-label="Zoom in"
+                className="grid h-5 w-5 place-items-center rounded-full transition hover:bg-[var(--hover-bg)]"
+              >
+                +
+              </button>
+            </div>
+
+            <button
+              onClick={toggleSelectMode}
+              title="Select multiple bricks"
+              aria-label="Select multiple bricks"
+              className={`grid h-8 w-8 place-items-center rounded-full border transition ${
+                selectMode
+                  ? "border-accent text-accent ring-2 ring-accent"
+                  : "border-transparent text-[var(--foreground)] opacity-70 hover:bg-[var(--hover-bg)] hover:opacity-100"
+              }`}
+            >
+              <Icon icon="clarity:grid-view-line" width={16} height={16} />
+            </button>
+
+            <div className="h-4 w-px bg-[var(--field-border)]" />
+
+            <button
+              onClick={handleConfessCta}
+              className="shadow-pixel inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-on-accent transition active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+            >
+              <Icon icon="clarity:heart-solid" width={14} height={14} />
+              <span className="hidden sm:inline">
+                Leave a Whisper on the Wall
+              </span>
+            </button>
+
+            <span className="hidden pl-1 font-mono text-[11px] opacity-50 md:inline">
+              {boughtCount.toLocaleString()} / {totalLabel} bricks
+            </span>
+          </div>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -721,7 +851,7 @@ export function ConfessionApp() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
-            className="pointer-events-none absolute bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-[var(--chip-bg)] px-4 py-2 text-sm text-[var(--chip-fg)]"
+            className="pointer-events-none absolute bottom-24 left-1/2 z-40 -translate-x-1/2 rounded-full bg-[var(--chip-bg)] px-4 py-2 text-sm text-[var(--chip-fg)] shadow-lg"
           >
             {toast}
           </motion.div>
