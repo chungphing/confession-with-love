@@ -135,6 +135,8 @@ io.on("connection", (socket) => {
   socket.emit("ready", { confessions: store.snapshot() });
 });
 
-server.listen(BACKEND_PORT, () => {
-  console.log(`[backend] listening on http://localhost:${BACKEND_PORT}`);
+const PORT = Number(process.env.PORT) || BACKEND_PORT;
+
+server.listen(PORT, () => {
+  console.log(`[backend] listening on http://localhost:${PORT}`);
 });
