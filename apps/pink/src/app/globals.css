@@ -62,6 +62,9 @@
   --cw-cell-icon: #e11d48;
   --cw-grid-line: rgba(214, 205, 188, 0.5);
   --cw-cell-radius: 12px;
+  --cw-flame-outer: #ef4444;
+  --cw-flame-mid: #f97316;
+  --cw-flame-core: #fde047;
 }
 
 html,

@@ -41,6 +41,7 @@ const BACKEND_URL =
 const SELECT_MAX = 100;
 const BASE_SCALE = MAX_SCALE * 0.8;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const HOT_REACTION_THRESHOLD = 70;
 
 const DEFAULT_PALETTE: Palette = {
   bg: "#f5efeb",
@@ -56,6 +57,9 @@ const DEFAULT_PALETTE: Palette = {
   cellIcon: "#e11d48",
   gridLine: "rgba(214,205,188,0.5)",
   cellRadius: 12,
+  flameOuter: "#ef4444",
+  flameMid: "#f97316",
+  flameCore: "#fde047",
   theme: "pink",
 };
 
@@ -89,6 +93,9 @@ function readPalette(): Palette {
     cellRadius:
       Number(val("--cw-cell-radius", String(DEFAULT_PALETTE.cellRadius))) ||
       DEFAULT_PALETTE.cellRadius,
+    flameOuter: val("--cw-flame-outer", DEFAULT_PALETTE.flameOuter),
+    flameMid: val("--cw-flame-mid", DEFAULT_PALETTE.flameMid),
+    flameCore: val("--cw-flame-core", DEFAULT_PALETTE.flameCore),
     theme: val("--cw-theme", "pink") === "minimal" ? "minimal" : "pink",
   };
 }
@@ -356,6 +363,7 @@ export function ConfessionApp() {
         hoverRef.current,
         paletteRef.current,
         selectionRef.current,
+        hotRef.current,
       );
     };
     raf = requestAnimationFrame(loop);
@@ -685,6 +693,18 @@ export function ConfessionApp() {
       .sort((a, b) => total(b) - total(a))
       .slice(0, 8);
   }, [confessions]);
+
+  const hotKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of confessions.values()) {
+      const total = Object.values(c.reactions).reduce((a, b) => a + b, 0);
+      if (total >= HOT_REACTION_THRESHOLD) set.add(cellKey(c.x, c.y));
+    }
+    return set;
+  }, [confessions]);
+
+  const hotRef = useRef(hotKeys);
+  hotRef.current = hotKeys;
 
   const composerCount = selection.size > 0 ? selection.size : selected ? 1 : 0;
 

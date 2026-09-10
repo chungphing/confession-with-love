@@ -21,6 +21,9 @@ export interface Palette {
   cellIcon: string;
   gridLine: string;
   cellRadius: number;
+  flameOuter: string;
+  flameMid: string;
+  flameCore: string;
   theme: "pink" | "minimal";
 }
 
@@ -270,6 +273,118 @@ function drawCheck(
   ctx.restore();
 }
 
+// --- "hot" brick fire effect ---
+
+// Pixel-art flame frames. Chars: "." empty, "o" outer, "y" mid, "w" core.
+const PIXEL_FLAME: string[][] = [
+  [
+    "....o....",
+    "...oyo...",
+    "..oyyyo..",
+    "..oywyo..",
+    ".oyyyyyo.",
+    ".oywwwyo.",
+    ".oywwwyo.",
+    "oyyyyyyyo",
+    "oyyyyyyyo",
+    ".ooooooo.",
+  ],
+  [
+    ".....o...",
+    "....oyo..",
+    "...oyyo..",
+    "..oyyyo..",
+    ".oywyyyo.",
+    ".oywwwyo.",
+    "oyywwwyyo",
+    "oyyyyyyyo",
+    "oyyyyyyyo",
+    ".ooooooo.",
+  ],
+  [
+    "...o.....",
+    "..oyo....",
+    "..oyyo...",
+    "..oyyyo..",
+    ".oyywyo..",
+    ".oywwwyo.",
+    "oyywwwyyo",
+    "oyyyyyyyo",
+    "oyyyyyyyo",
+    ".ooooooo.",
+  ],
+  [
+    "....o....",
+    "...oyo...",
+    "...oyo...",
+    "..oyyyo..",
+    "..oywyo..",
+    ".oywwyyo.",
+    ".oywwwyo.",
+    "oyyyyyyyo",
+    "oyyyyyyyo",
+    ".ooooooo.",
+  ],
+];
+
+let reducedMotionCache: boolean | null = null;
+
+function prefersReducedMotion(): boolean {
+  if (reducedMotionCache === null) {
+    reducedMotionCache =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+  return reducedMotionCache;
+}
+
+function drawPixelFlame(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  baseY: number,
+  width: number,
+  frame: number,
+  palette: Palette,
+): void {
+  const sprite = PIXEL_FLAME[frame % PIXEL_FLAME.length];
+  const rows = sprite.length;
+  const cols = sprite[0].length;
+  const px = Math.max(1, Math.floor(width / cols));
+  const originX = snapValue(ctx, cx - (cols * px) / 2);
+  const originY = snapValue(ctx, baseY - rows * px);
+
+  // Warm glow behind the flame.
+  const radius = width * 1.1;
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  const glow = ctx.createRadialGradient(cx, baseY, 0, cx, baseY, radius);
+  glow.addColorStop(0, palette.flameOuter);
+  glow.addColorStop(1, "transparent");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(cx, baseY, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  for (let r = 0; r < rows; r++) {
+    const row = sprite[r];
+    for (let c = 0; c < cols; c++) {
+      const ch = row[c];
+      if (ch === ".") continue;
+      ctx.fillStyle =
+        ch === "w"
+          ? palette.flameCore
+          : ch === "y"
+            ? palette.flameMid
+            : palette.flameOuter;
+      ctx.fillRect(originX + c * px, originY + r * px, px, px);
+    }
+  }
+  ctx.restore();
+}
+
 export function drawGrid(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -281,6 +396,7 @@ export function drawGrid(
   hover: { x: number; y: number } | null,
   palette: Palette,
   selectedCells: Set<string> | null = null,
+  hotKeys: Set<string> | null = null,
 ): void {
   // Transparent canvas: the dotted parchment pattern shows through from CSS.
   ctx.clearRect(0, 0, width, height);
@@ -397,6 +513,30 @@ export function drawGrid(
       if (!inView(l.x, l.y)) continue;
       ctx.fillStyle = palette.cellLocked;
       ctx.fillRect(toScreenX(l.x), toScreenY(l.y), Math.max(1, cellW), Math.max(1, cellH));
+    }
+  }
+
+  // "Hot" bricks: animated pixel flames rising off the top edge.
+  if (hotKeys && hotKeys.size > 0 && cellW >= CARD_MIN_PX) {
+    const frame = prefersReducedMotion()
+      ? 0
+      : Math.floor(performance.now() / 110);
+    const flameWidth = cardW * 0.45;
+    for (const key of hotKeys) {
+      const [xs, ys] = key.split(":");
+      const x = Number(xs);
+      const y = Number(ys);
+      if (!inView(x, y)) continue;
+      const sx = toScreenX(x) + margin;
+      const sy = toScreenY(y) + margin;
+      drawPixelFlame(
+        ctx,
+        sx + cardW / 2,
+        sy + cardH * 0.15,
+        flameWidth,
+        frame,
+        palette,
+      );
     }
   }
 
