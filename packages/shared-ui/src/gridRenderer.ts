@@ -132,6 +132,47 @@ function snapValue(ctx: CanvasRenderingContext2D, v: number): number {
   return Math.round(v * s) / s;
 }
 
+// Pixel-art rounded rect: a stair-stepped corner built from unit pixel dots
+// (not an arc). All coordinates are assumed integer/device-snapped.
+function pixelRoundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  const cr = Math.max(0, Math.min(r, Math.floor(Math.min(w, h) / 2)));
+  ctx.beginPath();
+  if (cr === 0) {
+    ctx.rect(x, y, w, h);
+    return;
+  }
+
+  ctx.moveTo(x + cr, y);
+  ctx.lineTo(x + w - cr, y);
+  for (let i = 0; i < cr; i++) {
+    ctx.lineTo(x + w - cr + i, y + i + 1);
+    ctx.lineTo(x + w - cr + i + 1, y + i + 1);
+  }
+  ctx.lineTo(x + w, y + h - cr);
+  for (let i = 0; i < cr; i++) {
+    ctx.lineTo(x + w - i - 1, y + h - cr + i);
+    ctx.lineTo(x + w - i - 1, y + h - cr + i + 1);
+  }
+  ctx.lineTo(x + cr, y + h);
+  for (let i = 0; i < cr; i++) {
+    ctx.lineTo(x + cr - i - 1, y + h - i);
+    ctx.lineTo(x + cr - i - 1, y + h - i - 1);
+  }
+  ctx.lineTo(x, y + cr);
+  for (let i = 0; i < cr; i++) {
+    ctx.lineTo(x + i + 1, y + cr - i);
+    ctx.lineTo(x + i + 1, y + cr - i - 1);
+  }
+  ctx.closePath();
+}
+
 function drawPixelButton(
   ctx: CanvasRenderingContext2D,
   sx: number,
@@ -145,10 +186,15 @@ function drawPixelButton(
   const ww = Math.max(1, snapValue(ctx, w));
   const hh = Math.max(1, snapValue(ctx, h));
   const border = Math.max(1, Math.round(Math.min(ww, hh) * 0.08));
-  const bevel = Math.max(2, Math.round(hh * 0.22));
+  const bevel = Math.max(1, Math.round(hh * 0.044));
+  const corner = Math.max(1, Math.round(Math.min(ww, hh) * 0.05));
   const faceW = Math.max(1, ww - border * 2);
   const faceH = Math.max(1, hh - border * 2);
   const highlight = Math.max(1, Math.round(border * 0.6));
+
+  ctx.save();
+  pixelRoundRectPath(ctx, x, y, ww, hh, corner);
+  ctx.clip();
 
   ctx.fillStyle = base;
   ctx.fillRect(x, y, ww, hh);
@@ -164,6 +210,8 @@ function drawPixelButton(
 
   ctx.fillStyle = "rgba(255,255,255,0.5)";
   ctx.fillRect(x + border, y + border, faceW, highlight);
+
+  ctx.restore();
 }
 
 function drawPixelHeart(
@@ -256,6 +304,50 @@ export function drawGrid(
     }
   };
 
+  const isPink = palette.theme === "pink";
+
+  const drawCellIcon = (x: number, y: number) => {
+    if (cellW < CARD_MIN_PX) return;
+    const sx = toScreenX(x) + margin;
+    const sy = toScreenY(y) + margin;
+    const iconSize = Math.min(cardW, cardH) * 0.55;
+    const cx = sx + cardW / 2;
+    const cy = sy + cardH / 2;
+    if (isPink) {
+      drawPixelHeart(ctx, cx, cy, iconSize, palette.cellIcon, 0.5);
+    } else {
+      drawCheck(ctx, cx, cy, iconSize, palette.cellIcon, 0.5);
+    }
+  };
+
+  // Bought (active) cells: a raised pixel-art button on pink, a flat card
+  // elsewhere, both carrying a low-opacity icon.
+  const drawFilledCell = (x: number, y: number) => {
+    if (cellW < CARD_MIN_PX) {
+      ctx.fillStyle = palette.cellFilled;
+      ctx.fillRect(
+        toScreenX(x),
+        toScreenY(y),
+        Math.max(1, cellW),
+        Math.max(1, cellH),
+      );
+      return;
+    }
+    if (isPink) {
+      drawPixelButton(
+        ctx,
+        toScreenX(x) + margin,
+        toScreenY(y) + margin,
+        cardW,
+        cardH,
+        palette.cellFilled,
+      );
+    } else {
+      drawCard(x, y, palette.cellFilled);
+    }
+    drawCellIcon(x, y);
+  };
+
   if (cellW >= CARD_MIN_PX) {
     // Card mode: every cell in view is drawn as a rounded card.
     for (let y = yStart; y < yEnd; y++) {
@@ -265,7 +357,7 @@ export function drawGrid(
     }
     for (const c of confessions.values()) {
       if (c.x < xStart || c.x >= xEnd || c.y < yStart || c.y >= yEnd) continue;
-      drawCard(c.x, c.y, palette.cellFilled);
+      drawFilledCell(c.x, c.y);
     }
     for (const l of locked.values()) {
       if (l.x < xStart || l.x >= xEnd || l.y < yStart || l.y >= yEnd) continue;
@@ -275,8 +367,7 @@ export function drawGrid(
     // Far zoom: only meaningful cells are drawn as points.
     for (const c of confessions.values()) {
       if (c.x < xStart || c.x >= xEnd || c.y < yStart || c.y >= yEnd) continue;
-      ctx.fillStyle = palette.cellFilled;
-      ctx.fillRect(toScreenX(c.x), toScreenY(c.y), Math.max(1, cellW), Math.max(1, cellH));
+      drawFilledCell(c.x, c.y);
     }
     for (const l of locked.values()) {
       if (l.x < xStart || l.x >= xEnd || l.y < yStart || l.y >= yEnd) continue;
@@ -308,41 +399,17 @@ export function drawGrid(
     }
   };
 
-  const isPink = palette.theme === "pink";
-
-  const drawActiveCell = (x: number, y: number) => {
-    if (cellW < CARD_MIN_PX) {
-      drawCard(x, y, palette.cellSelected);
-      return;
-    }
-    const sx = toScreenX(x) + margin;
-    const sy = toScreenY(y) + margin;
-    if (isPink) {
-      drawPixelButton(ctx, sx, sy, cardW, cardH, palette.cellSelected);
-    } else {
-      ctx.save();
-      ctx.globalAlpha = 0.35;
-      drawCard(x, y, palette.cellSelected);
-      ctx.restore();
-      strokeCard(x, y, palette.cellSelected, Math.max(1.5, cellW * 0.08));
-    }
-    const iconSize = Math.min(cardW, cardH) * 0.55;
-    const cx = sx + cardW / 2;
-    const cy = sy + cardH / 2;
-    if (isPink) {
-      drawPixelHeart(ctx, cx, cy, iconSize, palette.cellIcon, 0.5);
-    } else {
-      drawCheck(ctx, cx, cy, iconSize, palette.cellIcon, 0.5);
-    }
-  };
-
   if (selectedCells && selectedCells.size > 0) {
     for (const key of selectedCells) {
       const [xs, ys] = key.split(":");
       const x = Number(xs);
       const y = Number(ys);
       if (x < xStart || x >= xEnd || y < yStart || y >= yEnd) continue;
-      drawActiveCell(x, y);
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      drawCard(x, y, palette.cellSelected);
+      ctx.restore();
+      strokeCard(x, y, palette.cellSelected, Math.max(1.5, cellW * 0.08));
     }
   }
 
@@ -351,6 +418,6 @@ export function drawGrid(
   }
 
   if (selected) {
-    drawActiveCell(selected.x, selected.y);
+    strokeCard(selected.x, selected.y, palette.cellSelected, Math.max(2, cellW * 0.2));
   }
 }
